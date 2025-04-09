@@ -2,23 +2,13 @@ from flask import Flask, render_template, request, send_from_directory, abort, r
 from models import db, FileRecord, init_db, generate_md5_filename, safe_filename,DownloadRecord
 from config import Config
 from datetime import datetime, timedelta
-from werkzeug.utils import secure_filename
+
 import os
 import random
 import string
 from werkzeug.exceptions import HTTPException
 from functools import wraps
 
-from flask import Flask, render_template, request, send_from_directory, abort, redirect, url_for, flash, session
-from models import db, FileRecord, init_db, generate_md5_filename, safe_filename, DownloadRecord
-from config import Config
-from datetime import datetime, timedelta
-from werkzeug.utils import secure_filename
-import os
-import random
-import string
-from werkzeug.exceptions import HTTPException
-from functools import wraps
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import time

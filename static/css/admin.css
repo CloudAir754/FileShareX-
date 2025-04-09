@@ -19,7 +19,8 @@
     margin-top: 20px;
 }
 
-.records-table th, .records-table td {
+.records-table th,
+.records-table td {
     padding: 8px;
     border: 1px solid #ddd;
     text-align: left;
@@ -78,7 +79,8 @@
     transition: all 0.3s;
 }
 
-.admin-nav a:hover, .admin-nav a.active {
+.admin-nav a:hover,
+.admin-nav a.active {
     background-color: #007bff;
     color: white;
 }

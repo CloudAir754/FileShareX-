@@ -9,29 +9,29 @@
 {% block content %}
 <script>
     // 会话过期前5分钟提示
-    setTimeout(function() {
+    setTimeout(function () {
         alert('您的会话将在3分钟后过期，请保存工作并重新登录');
     }, 1 * 60 * 1000);  // 25分钟后提示（假设总时长为30分钟）
-    </script>
-    
+</script>
+
 <div class="admin-container">
     <div class="admin-header-container">
         <h1 class="admin-header">文件记录管理</h1>
         <a href="{{ url_for('admin_logout') }}" class="logout-btn">登出</a>
     </div>
-    
+
     <div class="admin-nav">
         <a href="{{ url_for('admin_home', admin_key=request.args.get('admin_key')) }}">首页</a>
         <a href="{{ url_for('add_file', admin_key=request.args.get('admin_key')) }}">添加文件</a>
         <a href="{{ url_for('view_records', admin_key=request.args.get('admin_key')) }}" class="active">文件记录</a>
     </div>
-    
+
     <form class="search-form" action="{{ url_for('admin_search') }}" method="get">
         <input type="hidden" name="admin_key" value="{{ request.args.get('admin_key') }}">
         <input type="text" name="q" value="{{ query }}" placeholder="搜索文件名、提取码或描述...">
         <button type="submit">搜索</button>
     </form>
-    
+
     <table class="records-table">
         <thead>
             <tr>
@@ -60,17 +60,18 @@
                 </td>
                 <td>{{ file.download_count }}/{{ file.max_downloads if file.max_downloads > 0 else '∞' }}</td>
                 <td class="action-buttons">
-                    <a href="{{ url_for('admin_search', admin_key=request.args.get('admin_key'), q=file.code) }}" 
-                       class="btn-view">详情</a>
-                    <form method="post" action="{{ url_for('toggle_file', file_id=file.id, admin_key=request.args.get('admin_key')) }}" 
-                          style="display: inline;">
+                    <a href="{{ url_for('admin_search', admin_key=request.args.get('admin_key'), q=file.code) }}"
+                        class="btn-view">详情</a>
+                    <form method="post"
+                        action="{{ url_for('toggle_file', file_id=file.id, admin_key=request.args.get('admin_key')) }}"
+                        style="display: inline;">
                         <button type="submit" class="btn-edit">
                             {% if file.is_active %}禁用{% else %}激活{% endif %}
                         </button>
                     </form>
-                    <form method="post" action="{{ url_for('delete_file', file_id=file.id, admin_key=request.args.get('admin_key')) }}" 
-                          style="display: inline;"
-                          onsubmit="return confirm('确定要删除这个文件吗？此操作不可恢复！');">
+                    <form method="post"
+                        action="{{ url_for('delete_file', file_id=file.id, admin_key=request.args.get('admin_key')) }}"
+                        style="display: inline;" onsubmit="return confirm('确定要删除这个文件吗？此操作不可恢复！');">
                         <button type="submit" class="btn-delete">删除</button>
                     </form>
                 </td>
@@ -102,25 +103,27 @@
             {% endfor %}
         </tbody>
     </table>
-    
+
     <div class="pagination">
         {% if files.has_prev %}
-            <a href="{{ url_for('admin_search', admin_key=request.args.get('admin_key'), q=query, page=files.prev_num) }}">上一页</a>
+        <a
+            href="{{ url_for('admin_search', admin_key=request.args.get('admin_key'), q=query, page=files.prev_num) }}">上一页</a>
         {% endif %}
-        
+
         {% for page_num in files.iter_pages() %}
-            {% if page_num %}
-                <a href="{{ url_for('admin_search', admin_key=request.args.get('admin_key'), q=query, page=page_num) }}" 
-                   {% if page_num == files.page %}class="active"{% endif %}>
-                    {{ page_num }}
-                </a>
-            {% else %}
-                <span>...</span>
-            {% endif %}
+        {% if page_num %}
+        <a href="{{ url_for('admin_search', admin_key=request.args.get('admin_key'), q=query, page=page_num) }}" {% if
+            page_num==files.page %}class="active" {% endif %}>
+            {{ page_num }}
+        </a>
+        {% else %}
+        <span>...</span>
+        {% endif %}
         {% endfor %}
-        
+
         {% if files.has_next %}
-            <a href="{{ url_for('admin_search', admin_key=request.args.get('admin_key'), q=query, page=files.next_num) }}">下一页</a>
+        <a
+            href="{{ url_for('admin_search', admin_key=request.args.get('admin_key'), q=query, page=files.next_num) }}">下一页</a>
         {% endif %}
     </div>
 </div>

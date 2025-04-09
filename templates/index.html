@@ -3,12 +3,11 @@
 {% block content %}
 <div class="container">
     <h1>文件提取服务</h1>
-    
+
     <form method="POST">
         <label for="code">请输入提取码：</label><br>
-        <input type="text" id="code" name="code" required 
-               placeholder="例如：A1b2C3" pattern="[A-Za-z0-9]{6}" 
-               title="6位字母数字组合">
+        <input type="text" id="code" name="code" required placeholder="例如：A1b2C3" pattern="[A-Za-z0-9]{6}"
+            title="6位字母数字组合">
         <div class="code-format">提取码格式：6位字母和数字组合（区分大小写）</div>
         <button type="submit">提取文件</button>
     </form>
