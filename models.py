@@ -12,11 +12,18 @@ class FileRecord(db.Model):
     code = db.Column(db.String(32), unique=True, nullable=False)
     md5_filename = db.Column(db.String(32), nullable=False)
     original_filename = db.Column(db.String(256), nullable=False)
+    file_size = db.Column(db.Integer)  # 文件大小(字节)
+    file_type = db.Column(db.String(32))  # 文件类型
+    uploader_ip = db.Column(db.String(45))  # 支持IPv6(最长45字符)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime)
     download_count = db.Column(db.Integer, default=0)
     max_downloads = db.Column(db.Integer, default=1)
     is_active = db.Column(db.Boolean, default=True)
+    description = db.Column(db.String(500))  # 文件描述
+    
+    # 与下载记录的关联关系
+    downloads = db.relationship('DownloadRecord', backref='file', lazy=True, cascade="all, delete-orphan")
 
     def is_valid(self):
         if not self.is_active:
@@ -29,6 +36,13 @@ class FileRecord(db.Model):
             return False
             
         return True
+
+class DownloadRecord(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    file_id = db.Column(db.Integer, db.ForeignKey('file_record.id'), nullable=False)
+    downloader_ip = db.Column(db.String(45))  # 下载者IP
+    download_time = db.Column(db.DateTime, default=datetime.utcnow)  # 下载时间
+    user_agent = db.Column(db.String(256))  # 用户代理信息
 
 def init_db(app):
     basedir = os.path.abspath(os.path.dirname(__file__))

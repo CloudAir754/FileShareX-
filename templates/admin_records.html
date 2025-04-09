@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>文件记录</h1>
+<table class="records-table">
+    <thead>
+        <tr>
+            <th>提取码</th>
+            <th>文件名</th>
+            <th>大小</th>
+            <th>上传者IP</th>
+            <th>上传时间</th>
+            <th>过期时间</th>
+            <th>下载次数</th>
+            <th>描述</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for file in files %}
+        <tr>
+            <td>{{ file.code }}</td>
+            <td>{{ file.original_filename }}</td>
+            <td>{{ file.file_size|filesizeformat }}</td>
+            <td>{{ file.uploader_ip }}</td>
+            <td>{{ file.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ file.expires_at.strftime('%Y-%m-%d %H:%M') if file.expires_at else '永不过期' }}</td>
+            <td>{{ file.download_count }}/{{ file.max_downloads if file.max_downloads > 0 else '∞' }}</td>
+            <td>{{ file.description }}</td>
+        </tr>
+        {% if file.downloads %}
+        <tr class="downloads-row">
+            <td colspan="8">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>下载时间</th>
+                            <th>下载者IP</th>
+                            <th>用户代理</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for download in file.downloads %}
+                        <tr>
+                            <td>{{ download.download_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ download.downloader_ip }}</td>
+                            <td>{{ download.user_agent|truncate(50) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

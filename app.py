@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, send_from_directory, abort, redirect, url_for, flash
-from models import db, FileRecord, init_db, generate_md5_filename, safe_filename
+from models import db, FileRecord, init_db, generate_md5_filename, safe_filename,DownloadRecord
 from config import Config
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
@@ -82,6 +82,13 @@ def add_file():
             safe_name = safe_filename(original_filename)
             md5_filename = generate_md5_filename(file.stream)
             
+            # 获取文件信息
+            file.seek(0, os.SEEK_END)
+            file_size = file.tell()
+            file.seek(0)
+            
+            file_type = os.path.splitext(original_filename)[1].lower().lstrip('.')
+            
             expire_days = int(request.form.get('expire_days', app.config['DEFAULT_EXPIRE_DAYS']))
             expires_at = datetime.utcnow() + timedelta(days=expire_days)
             
@@ -92,8 +99,12 @@ def add_file():
                 code=code,
                 md5_filename=md5_filename,
                 original_filename=original_filename,
+                file_size=file_size,
+                file_type=file_type,
+                uploader_ip=request.remote_addr,  # 记录上传者IP
                 expires_at=expires_at,
-                max_downloads=int(request.form.get('max_downloads', 1))
+                max_downloads=int(request.form.get('max_downloads', 1)),
+                description=request.form.get('description', '')  # 文件描述
             )
             
             db.session.add(new_record)
@@ -110,6 +121,7 @@ def add_file():
     
     return render_template('admin_add.html')
 
+
 @app.route('/download/<code>')
 def download_file(code):
     file_record = FileRecord.query.filter_by(code=code).first()
@@ -122,6 +134,18 @@ def download_file(code):
     if not os.path.exists(filepath):
         abort(404)
     
+    # 创建下载记录
+    download_record = DownloadRecord(
+        file_id=file_record.id,
+        downloader_ip=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
+    db.session.add(download_record)
+    
+    # 更新下载计数
+    file_record.download_count += 1
+    db.session.commit()
+    
     response = send_from_directory(
         app.config['UPLOAD_FOLDER'],
         file_record.md5_filename,
@@ -129,10 +153,9 @@ def download_file(code):
         download_name=file_record.original_filename
     )
     
-    file_record.download_count += 1
-    db.session.commit()
-    
     return response
+
+
 
 @app.errorhandler(400)
 @app.errorhandler(401)
@@ -160,6 +183,7 @@ def handle_exception(error):
 
 @app.cli.command('cleanup')
 def cleanup():
+    # 清理过期文件记录
     expired_records = FileRecord.query.filter(
         FileRecord.expires_at < datetime.utcnow()
     ).all()
@@ -170,8 +194,24 @@ def cleanup():
             os.remove(filepath)
         db.session.delete(record)
     
+    # 清理30天前的下载记录
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    old_downloads = DownloadRecord.query.filter(
+        DownloadRecord.download_time < thirty_days_ago
+    ).delete()
+    
     db.session.commit()
-    print(f"清理了 {len(expired_records)} 个过期记录")
+    print(f"清理了 {len(expired_records)} 个过期文件记录和 {old_downloads} 条旧下载记录")
+
+@app.route('/admin/records')
+def view_records():
+    if request.args.get('admin_key') != app.config['SECRET_KEY']:
+        abort(403)
+    
+    # 获取文件记录和关联的下载记录
+    files = FileRecord.query.order_by(FileRecord.created_at.desc()).all()
+    
+    return render_template('admin_records.html', files=files)
 
 if __name__ == '__main__':
     if app.config['CLEAR_ON_STARTUP']:
