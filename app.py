@@ -22,6 +22,7 @@ def generate_code(length=Config.CODE_LENGTH):
     chars = string.ascii_letters + string.digits
     return ''.join(random.choice(chars) for _ in range(length))
 
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -52,6 +53,22 @@ def index():
         return redirect(url_for('download_file', code=code))
     
     return render_template('index.html')
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        password = request.form.get('admin_password', '')
+        
+        # 验证密码
+        if password == app.config['SECRET_KEY']:
+            # 密码正确，重定向到后台首页并附加admin_key参数
+            return redirect(url_for('admin_home', admin_key=password))
+        else:
+            # 密码错误，返回登录页并显示错误信息
+            return render_template('admin_login.html', error="密码错误，请重试")
+    
+    # GET请求，显示登录页面
+    return render_template('admin_login.html')
 
 @app.route('/admin/add', methods=['GET', 'POST'])
 def add_file():
@@ -207,8 +224,10 @@ def cleanup():
 # 添加到 app.py 中的路由部分
 @app.route('/admin')
 def admin_home():
-    if request.args.get('admin_key') != app.config['SECRET_KEY']:
-        abort(403)
+    admin_key = request.args.get('admin_key')
+    if not admin_key or admin_key != app.config['SECRET_KEY']:
+        # 如果没有有效的admin_key，重定向到登录页
+        return redirect(url_for('admin_login'))
     
     # 统计信息
     total_files = FileRecord.query.count()
@@ -245,6 +264,9 @@ def admin_search():
         files = FileRecord.query.order_by(FileRecord.created_at.desc()).paginate(page=page, per_page=per_page)
     
     return render_template('admin_records.html', files=files, query=query)
+
+
+    
 
 @app.route('/admin/file/<int:file_id>/delete', methods=['POST'])
 def delete_file(file_id):
@@ -320,4 +342,5 @@ if __name__ == '__main__':
             os.makedirs(upload_folder, exist_ok=True)
             print(f"已重新创建上传文件夹: {upload_folder}")
 
-    app.run(debug=True)
+    # app.run(debug=True)
+    app.run('0.0.0.0',5000,debug=False)
