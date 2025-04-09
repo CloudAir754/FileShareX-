@@ -9,6 +9,21 @@ import string
 from werkzeug.exceptions import HTTPException
 from functools import wraps
 
+from flask import Flask, render_template, request, send_from_directory, abort, redirect, url_for, flash, session
+from models import db, FileRecord, init_db, generate_md5_filename, safe_filename, DownloadRecord
+from config import Config
+from datetime import datetime, timedelta
+from werkzeug.utils import secure_filename
+import os
+import random
+import string
+from werkzeug.exceptions import HTTPException
+from functools import wraps
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+import time
+from werkzeug.exceptions import RequestEntityTooLarge
+
 app = Flask(__name__)
 app.config.from_object(Config)
 app.secret_key = app.config['SECRET_KEY']  # 设置session密钥
@@ -16,13 +31,37 @@ app.secret_key = app.config['SECRET_KEY']  # 设置session密钥
 # 初始化数据库
 init_db(app)
 
+# 初始化速率限制器
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,  # 使用客户端IP作为限制依据
+    default_limits=["200 per day", "50 per hour"]  # 全局默认限制
+)
+
+# 密码尝试记录
+password_attempts = {}
+
 # 确保上传目录存在
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-def generate_code(length=Config.CODE_LENGTH):
-    """生成指定位数的字母数字混合提取码（大小写敏感）"""
-    chars = string.ascii_letters + string.digits
-    return ''.join(random.choice(chars) for _ in range(length))
+@app.errorhandler(RequestEntityTooLarge)
+def handle_413(error):
+    # 从配置中获取最大文件大小（转换为MB）
+    max_size = app.config.get('MAX_CONTENT_LENGTH', 0)
+    if max_size:
+        max_size = f"{round(max_size / (1024 * 1024))}MB"
+    else:
+        max_size = "未设置"
+        
+        # 获取来源页面（如果存在）
+    referrer = request.headers.get('Referer')
+    
+    return render_template(
+        '413.html',
+        max_size=max_size,
+        referrer=referrer
+    ), 413
+
 
 def admin_required(f):
     """管理员权限装饰器"""
@@ -33,13 +72,68 @@ def admin_required(f):
         return f(*args,**kwargs)
     return decorated_function
 
+def check_brute_force(ip, code):
+    """检查密码爆破尝试"""
+    now = time.time()
+    
+    # 初始化IP记录
+    if ip not in password_attempts:
+        password_attempts[ip] = {'attempts': [], 'blocked_until': 0}
+    
+    # 检查是否被封锁
+    if password_attempts[ip]['blocked_until'] > now:
+        remaining_time = int(password_attempts[ip]['blocked_until'] - now)
+        return False, f"尝试过于频繁，请等待 {remaining_time} 秒后再试"
+    
+    # 记录本次尝试
+    password_attempts[ip]['attempts'].append(now)
+    
+    # 清理过期的尝试记录（只保留最近5分钟内的）
+    password_attempts[ip]['attempts'] = [
+        t for t in password_attempts[ip]['attempts'] 
+        if t > now - 300
+    ]
+    
+    # 检查尝试次数
+    max_attempts = 10  # 5分钟内最多尝试10次
+    if len(password_attempts[ip]['attempts']) > max_attempts:
+        # 封锁IP 5分钟
+        password_attempts[ip]['blocked_until'] = now + 300
+        return False, "尝试次数过多，IP已被暂时封锁5分钟"
+    
+    return True, ""
+
+def check_download_frequency(ip, file_id):
+    """检查下载频率"""
+    now = datetime.utcnow()
+    
+    # 检查同一IP在短时间内对同一文件的下载次数
+    recent_downloads = DownloadRecord.query.filter(
+        DownloadRecord.downloader_ip == ip,
+        DownloadRecord.file_id == file_id,
+        DownloadRecord.download_time > now - timedelta(minutes=5)
+    ).count()
+    
+    if recent_downloads >= 3:  # 5分钟内最多下载3次
+        return False
+    
+    return True
+
 @app.route('/', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")  # 限制每分钟10次请求
 def index():
     if request.method == 'POST':
         code = request.form.get('code', '').strip()
+        ip = get_remote_address()
         
         if not code:
             flash('请输入提取码', 'error')
+            return redirect(url_for('index'))
+        
+        # 检查爆破尝试
+        is_allowed, message = check_brute_force(ip, code)
+        if not is_allowed:
+            flash(message, 'error')
             return redirect(url_for('index'))
         
         file_record = FileRecord.query.filter_by(code=code).first()
@@ -57,12 +151,65 @@ def index():
                 flash('提取码已失效', 'error')
             return redirect(url_for('index'))
             
-        # file_record.download_count += 1
-        db.session.commit()
-        
         return redirect(url_for('download_file', code=code))
     
     return render_template('index.html')
+
+@app.route('/download/<code>')
+@limiter.limit("3 per minute")  # 限制每分钟3次下载
+def download_file(code):
+    ip = get_remote_address()
+    file_record = FileRecord.query.filter_by(code=code).first()
+    
+    if not file_record or not file_record.is_valid():
+        abort(404)
+    
+    # 检查下载频率
+    if not check_download_frequency(ip, file_record.id):
+        flash('下载过于频繁，请稍后再试', 'error')
+        return redirect(url_for('index'))
+    
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], file_record.md5_filename)
+    
+    if not os.path.exists(filepath):
+        abort(404)
+    
+    # 创建下载记录
+    download_record = DownloadRecord(
+        file_id=file_record.id,
+        downloader_ip=ip,
+        user_agent=request.headers.get('User-Agent')
+    )
+    db.session.add(download_record)
+    
+    # 更新下载计数
+    file_record.download_count += 1
+    db.session.commit()
+    
+    response = send_from_directory(
+        app.config['UPLOAD_FOLDER'],
+        file_record.md5_filename,
+        as_attachment=True,
+        download_name=file_record.original_filename
+    )
+    
+    return response
+
+
+def generate_code(length=Config.CODE_LENGTH):
+    """生成指定位数的字母数字混合提取码（大小写敏感）"""
+    chars = string.ascii_letters + string.digits
+    return ''.join(random.choice(chars) for _ in range(length))
+
+def admin_required(f):
+    """管理员权限装饰器"""
+    @wraps(f)
+    def decorated_function(*args,**kwargs):
+        if not session.get('admin_logged_in'):
+            return redirect(url_for('admin_login'))
+        return f(*args,**kwargs)
+    return decorated_function
+
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
@@ -158,39 +305,6 @@ def add_file():
             return redirect(url_for('add_file'))
     
     return render_template('admin_add.html')
-
-@app.route('/download/<code>')
-def download_file(code):
-    file_record = FileRecord.query.filter_by(code=code).first()
-    
-    if not file_record or not file_record.is_valid():
-        abort(404)
-    
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], file_record.md5_filename)
-    
-    if not os.path.exists(filepath):
-        abort(404)
-    
-    # 创建下载记录
-    download_record = DownloadRecord(
-        file_id=file_record.id,
-        downloader_ip=request.remote_addr,
-        user_agent=request.headers.get('User-Agent')
-    )
-    db.session.add(download_record)
-    
-    # 更新下载计数
-    file_record.download_count += 1
-    db.session.commit()
-    
-    response = send_from_directory(
-        app.config['UPLOAD_FOLDER'],
-        file_record.md5_filename,
-        as_attachment=True,
-        download_name=file_record.original_filename
-    )
-    
-    return response
 
 @app.errorhandler(400)
 @app.errorhandler(401)

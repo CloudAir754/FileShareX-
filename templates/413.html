@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="error-container">
+    <h1>413 请求实体过大</h1>
+    <p>抱歉，您上传的文件超过了服务器允许的最大大小限制。</p>
+    <p>最大允许上传文件大小: <strong>{{ max_size }}</strong></p>
+    <p>建议解决方案：</p>
+    <ul>
+        <li>压缩文件后再尝试上传</li>
+        <li>将大文件分割成多个小文件</li>
+        <li>联系管理员获取帮助: 2741984956#qq.com</li>
+    </ul>
+    <a href="{{ url_for('index') }}" class="btn">返回首页</a>
+    {% if referrer %}
+    <a href="{{ referrer }}" class="btn btn-secondary">返回上一页</a>
+    {% endif %}
+</div>
+{% endblock %}
