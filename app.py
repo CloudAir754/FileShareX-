@@ -46,7 +46,7 @@ def index():
             return redirect(url_for('index'))
             
         # 增加下载计数
-        file_record.download_count += 1
+        # file_record.download_count += 1
         db.session.commit()
         
         return redirect(url_for('download_file', code=code))
@@ -163,12 +163,18 @@ def download_file(code):
         abort(404)
     
     # 发送文件，使用原始文件名作为下载时的文件名
-    return send_from_directory(
+    response = send_from_directory(
         app.config['UPLOAD_FOLDER'],
         file_record.md5_filename,
         as_attachment=True,
         download_name=file_record.original_filename
     )
+    
+    # 在成功发送文件后增加下载计数
+    file_record.download_count += 1
+    db.session.commit()
+    
+    return response
 
 @app.cli.command('cleanup')
 def cleanup():
