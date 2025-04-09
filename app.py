@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 import os
 import random
 import string
+from werkzeug.exceptions import HTTPException
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -132,6 +133,30 @@ def download_file(code):
     db.session.commit()
     
     return response
+
+@app.errorhandler(400)
+@app.errorhandler(401)
+@app.errorhandler(403)
+@app.errorhandler(404)
+def handle_40x_error(error):
+    code = getattr(error, 'code', 500)
+    return render_template('40x.html'), code
+
+@app.errorhandler(500)
+def handle_50x_error(error):
+    return render_template('50x.html'), 500
+
+@app.errorhandler(Exception)
+def handle_exception(error):
+    # 传递HTTP异常
+    if isinstance(error, HTTPException):
+        return error
+    
+    # 非HTTP异常，记录错误并返回500页面
+    app.logger.error(f"服务器错误: {str(error)}", exc_info=True)
+    return render_template('50x.html'), 500
+
+
 
 @app.cli.command('cleanup')
 def cleanup():
