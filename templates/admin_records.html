@@ -7,8 +7,18 @@
 {% endblock %}
 
 {% block content %}
+<script>
+    // 会话过期前5分钟提示
+    setTimeout(function() {
+        alert('您的会话将在3分钟后过期，请保存工作并重新登录');
+    }, 1 * 60 * 1000);  // 25分钟后提示（假设总时长为30分钟）
+    </script>
+    
 <div class="admin-container">
-    <h1 class="admin-header">文件记录管理</h1>
+    <div class="admin-header-container">
+        <h1 class="admin-header">文件记录管理</h1>
+        <a href="{{ url_for('admin_logout') }}" class="logout-btn">登出</a>
+    </div>
     
     <div class="admin-nav">
         <a href="{{ url_for('admin_home', admin_key=request.args.get('admin_key')) }}">首页</a>

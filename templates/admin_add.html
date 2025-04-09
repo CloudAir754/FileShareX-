@@ -7,30 +7,46 @@
 {% endblock %}
 
 {% block content %}
-<h1>添加新文件</h1>
+<script>
+    // 会话过期前5分钟提示
+    setTimeout(function () {
+        alert('您的会话将在3分钟后过期，请保存工作并重新登录');
+    }, 1 * 60 * 1000);  // 25分钟后提示（假设总时长为30分钟）
+</script>
 
-<form method="POST" enctype="multipart/form-data">
+<div class="admin-container">
+    <div class="admin-header-container">
+        <h1>添加新文件</h1>
+        <a href="{{ url_for('admin_logout') }}" class="logout-btn">登出</a>
+    </div>
 
-    <div class="form-group">
-        <label for="file">选择文件：</label>
-        <input type="file" id="file" name="file" required>
-    </div>
-    
-    <div class="form-group">
-        <label for="expire_days">有效期（天）：</label>
-        <input type="number" id="expire_days" name="expire_days" value="7" min="1">
-    </div>
-    
-    <div class="form-group">
-        <label for="max_downloads">最大下载次数（0表示无限制）：</label>
-        <input type="number" id="max_downloads" name="max_downloads" value="0" min="0">
-    </div>
-    
-    <div class="code-info">
-        <p>系统将自动生成6位字母数字混合提取码（区分大小写）</p>
-        <p>文件将以MD5哈希值存储，但用户下载时将获得原始文件名</p>
-    </div>
-    
-    <button type="submit">上传文件</button>
-</form>
+    <!-- 其余内容保持不变 -->
+
+
+    <form method="POST" enctype="multipart/form-data">
+
+        <div class="form-group">
+            <label for="file">选择文件：</label>
+            <input type="file" id="file" name="file" required>
+        </div>
+
+        <div class="form-group">
+            <label for="expire_days">有效期（天）：</label>
+            <input type="number" id="expire_days" name="expire_days" value="7" min="1">
+        </div>
+
+        <div class="form-group">
+            <label for="max_downloads">最大下载次数（0表示无限制）：</label>
+            <input type="number" id="max_downloads" name="max_downloads" value="0" min="0">
+        </div>
+
+        <div class="code-info">
+            <p>系统将自动生成6位字母数字混合提取码（区分大小写）</p>
+            <p>文件将以MD5哈希值存储，但用户下载时将获得原始文件名</p>
+        </div>
+
+        <button type="submit">上传文件</button>
+    </form>
+
+</div>
 {% endblock %}

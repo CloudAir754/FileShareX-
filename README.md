@@ -32,7 +32,7 @@ python app.py
 
 ## 后期
 - [X] 改进上传端口的密码输入
-- [ ] 改进session过期
+- [X] 改进session过期
 - [ ] 使用策略实时更新status
 - [ ] 整理代码和环境
 

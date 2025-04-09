@@ -8,6 +8,7 @@
     <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}

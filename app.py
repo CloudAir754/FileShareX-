@@ -69,6 +69,8 @@ def admin_required(f):
     def decorated_function(*args,**kwargs):
         if not session.get('admin_logged_in'):
             return redirect(url_for('admin_login'))
+        # 每次访问admin页面时刷新session
+        session.permanent = True
         return f(*args,**kwargs)
     return decorated_function
 
@@ -217,7 +219,7 @@ def admin_login():
         password = request.form.get('admin_password', '')
         
         # 验证密码
-        if password == app.config['SECRET_KEY']:
+        if password == app.config['ADMIN_PASSWORD']:
             # 设置session标记用户已登录
             session['admin_logged_in'] = True
             session.permanent = True  # 设置session为持久化
@@ -234,6 +236,7 @@ def admin_login():
 def admin_logout():
     # 清除session中的登录标记
     session.pop('admin_logged_in', None)
+    session.clear()  # 清除所有会话数据
     flash('您已成功登出', 'success')
     return redirect(url_for('admin_login'))
 
