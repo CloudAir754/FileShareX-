@@ -1,57 +1,117 @@
 {% extends "base.html" %}
 
+{% block title %}文件记录管理{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
 {% block content %}
-<h1>文件记录</h1>
-<table class="records-table">
-    <thead>
-        <tr>
-            <th>提取码</th>
-            <th>文件名</th>
-            <th>大小</th>
-            <th>上传者IP</th>
-            <th>上传时间</th>
-            <th>过期时间</th>
-            <th>下载次数</th>
-            <th>描述</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for file in files %}
-        <tr>
-            <td>{{ file.code }}</td>
-            <td>{{ file.original_filename }}</td>
-            <td>{{ file.file_size|filesizeformat }}</td>
-            <td>{{ file.uploader_ip }}</td>
-            <td>{{ file.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-            <td>{{ file.expires_at.strftime('%Y-%m-%d %H:%M') if file.expires_at else '永不过期' }}</td>
-            <td>{{ file.download_count }}/{{ file.max_downloads if file.max_downloads > 0 else '∞' }}</td>
-            <td>{{ file.description }}</td>
-        </tr>
-        {% if file.downloads %}
-        <tr class="downloads-row">
-            <td colspan="8">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>下载时间</th>
-                            <th>下载者IP</th>
-                            <th>用户代理</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for download in file.downloads %}
-                        <tr>
-                            <td>{{ download.download_time.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td>{{ download.downloader_ip }}</td>
-                            <td>{{ download.user_agent|truncate(50) }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </td>
-        </tr>
+<div class="admin-container">
+    <h1 class="admin-header">文件记录管理</h1>
+    
+    <div class="admin-nav">
+        <a href="{{ url_for('admin_home', admin_key=request.args.get('admin_key')) }}">首页</a>
+        <a href="{{ url_for('add_file', admin_key=request.args.get('admin_key')) }}">添加文件</a>
+        <a href="{{ url_for('view_records', admin_key=request.args.get('admin_key')) }}" class="active">文件记录</a>
+    </div>
+    
+    <form class="search-form" action="{{ url_for('admin_search') }}" method="get">
+        <input type="hidden" name="admin_key" value="{{ request.args.get('admin_key') }}">
+        <input type="text" name="q" value="{{ query }}" placeholder="搜索文件名、提取码或描述...">
+        <button type="submit">搜索</button>
+    </form>
+    
+    <table class="records-table">
+        <thead>
+            <tr>
+                <th>提取码</th>
+                <th>文件名</th>
+                <th>大小</th>
+                <th>上传时间</th>
+                <th>状态</th>
+                <th>下载次数</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for file in files.items %}
+            <tr>
+                <td>{{ file.code }}</td>
+                <td>{{ file.original_filename|truncate(20) }}</td>
+                <td>{{ file.file_size|filesizeformat }}</td>
+                <td>{{ file.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                    {% if file.is_active %}
+                    <span class="status-active">有效</span>
+                    {% else %}
+                    <span class="status-inactive">已禁用</span>
+                    {% endif %}
+                </td>
+                <td>{{ file.download_count }}/{{ file.max_downloads if file.max_downloads > 0 else '∞' }}</td>
+                <td class="action-buttons">
+                    <a href="{{ url_for('admin_search', admin_key=request.args.get('admin_key'), q=file.code) }}" 
+                       class="btn-view">详情</a>
+                    <form method="post" action="{{ url_for('toggle_file', file_id=file.id, admin_key=request.args.get('admin_key')) }}" 
+                          style="display: inline;">
+                        <button type="submit" class="btn-edit">
+                            {% if file.is_active %}禁用{% else %}激活{% endif %}
+                        </button>
+                    </form>
+                    <form method="post" action="{{ url_for('delete_file', file_id=file.id, admin_key=request.args.get('admin_key')) }}" 
+                          style="display: inline;"
+                          onsubmit="return confirm('确定要删除这个文件吗？此操作不可恢复！');">
+                        <button type="submit" class="btn-delete">删除</button>
+                    </form>
+                </td>
+            </tr>
+            {% if file.downloads %}
+            <tr class="downloads-row">
+                <td colspan="7">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>下载时间</th>
+                                <th>下载者IP</th>
+                                <th>用户代理</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for download in file.downloads %}
+                            <tr>
+                                <td>{{ download.download_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ download.downloader_ip }}</td>
+                                <td>{{ download.user_agent|truncate(50) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="pagination">
+        {% if files.has_prev %}
+            <a href="{{ url_for('admin_search', admin_key=request.args.get('admin_key'), q=query, page=files.prev_num) }}">上一页</a>
         {% endif %}
+        
+        {% for page_num in files.iter_pages() %}
+            {% if page_num %}
+                <a href="{{ url_for('admin_search', admin_key=request.args.get('admin_key'), q=query, page=page_num) }}" 
+                   {% if page_num == files.page %}class="active"{% endif %}>
+                    {{ page_num }}
+                </a>
+            {% else %}
+                <span>...</span>
+            {% endif %}
         {% endfor %}
-    </tbody>
-</table>
+        
+        {% if files.has_next %}
+            <a href="{{ url_for('admin_search', admin_key=request.args.get('admin_key'), q=query, page=files.next_num) }}">下一页</a>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

@@ -203,6 +203,90 @@ def cleanup():
     db.session.commit()
     print(f"清理了 {len(expired_records)} 个过期文件记录和 {old_downloads} 条旧下载记录")
 
+
+# 添加到 app.py 中的路由部分
+@app.route('/admin')
+def admin_home():
+    if request.args.get('admin_key') != app.config['SECRET_KEY']:
+        abort(403)
+    
+    # 统计信息
+    total_files = FileRecord.query.count()
+    active_files = FileRecord.query.filter(FileRecord.is_active == True).count()
+    total_downloads = db.session.query(db.func.sum(FileRecord.download_count)).scalar() or 0
+    
+    # 最近上传的文件
+    recent_files = FileRecord.query.order_by(FileRecord.created_at.desc()).limit(5).all()
+    
+    return render_template('admin_home.html', 
+                         total_files=total_files,
+                         active_files=active_files,
+                         total_downloads=total_downloads,
+                         recent_files=recent_files)
+
+@app.route('/admin/search')
+def admin_search():
+    if request.args.get('admin_key') != app.config['SECRET_KEY']:
+        abort(403)
+    
+    query = request.args.get('q', '')
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    
+    if query:
+        # 搜索文件名、提取码或描述
+        search = f"%{query}%"
+        files = FileRecord.query.filter(
+            (FileRecord.original_filename.like(search)) |
+            (FileRecord.code.like(search)) |
+            (FileRecord.description.like(search))
+        ).order_by(FileRecord.created_at.desc()).paginate(page=page, per_page=per_page)
+    else:
+        files = FileRecord.query.order_by(FileRecord.created_at.desc()).paginate(page=page, per_page=per_page)
+    
+    return render_template('admin_records.html', files=files, query=query)
+
+@app.route('/admin/file/<int:file_id>/delete', methods=['POST'])
+def delete_file(file_id):
+    if request.args.get('admin_key') != app.config['SECRET_KEY']:
+        abort(403)
+    
+    file_record = FileRecord.query.get_or_404(file_id)
+    
+    try:
+        # 删除物理文件
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file_record.md5_filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        
+        # 删除数据库记录
+        db.session.delete(file_record)
+        db.session.commit()
+        
+        flash('文件删除成功', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'删除失败: {str(e)}', 'error')
+        app.logger.error(f"删除文件失败: {str(e)}", exc_info=True)
+    
+    return redirect(url_for('admin_search', admin_key=request.args.get('admin_key')))
+
+@app.route('/admin/file/<int:file_id>/toggle', methods=['POST'])
+def toggle_file(file_id):
+    if request.args.get('admin_key') != app.config['SECRET_KEY']:
+        abort(403)
+    
+    file_record = FileRecord.query.get_or_404(file_id)
+    file_record.is_active = not file_record.is_active
+    db.session.commit()
+    
+    action = "激活" if file_record.is_active else "禁用"
+    flash(f'文件已{action}', 'success')
+    return redirect(url_for('admin_search', admin_key=request.args.get('admin_key')))
+
+
+
+
 @app.route('/admin/records')
 def view_records():
     if request.args.get('admin_key') != app.config['SECRET_KEY']:

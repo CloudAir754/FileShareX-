@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}后台管理首页{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <h1 class="admin-header">后台管理</h1>
+    
+    <div class="admin-nav">
+        <a href="{{ url_for('admin_home', admin_key=request.args.get('admin_key')) }}" class="active">首页</a>
+        <a href="{{ url_for('add_file', admin_key=request.args.get('admin_key')) }}">添加文件</a>
+        <a href="{{ url_for('view_records', admin_key=request.args.get('admin_key')) }}">文件记录</a>
+    </div>
+    
+    <div class="stats-container">
+        <div class="stat-card">
+            <h3>总文件数</h3>
+            <p>{{ total_files }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>有效文件</h3>
+            <p>{{ active_files }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>总下载量</h3>
+            <p>{{ total_downloads }}</p>
+        </div>
+    </div>
+    
+    <h2>最近上传的文件</h2>
+    <table class="records-table">
+        <thead>
+            <tr>
+                <th>提取码</th>
+                <th>文件名</th>
+                <th>上传时间</th>
+                <th>状态</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for file in recent_files %}
+            <tr>
+                <td>{{ file.code }}</td>
+                <td>{{ file.original_filename|truncate(30) }}</td>
+                <td>{{ file.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                    {% if file.is_active %}
+                    <span class="status-active">有效</span>
+                    {% else %}
+                    <span class="status-inactive">已禁用</span>
+                    {% endif %}
+                </td>
+                <td class="action-buttons">
+                    <a href="{{ url_for('admin_search', admin_key=request.args.get('admin_key'), q=file.code) }}" 
+                       class="btn-view">查看</a>
+                    <form method="post" action="{{ url_for('toggle_file', file_id=file.id, admin_key=request.args.get('admin_key')) }}" 
+                          style="display: inline;">
+                        <button type="submit" class="btn-edit">
+                            {% if file.is_active %}禁用{% else %}激活{% endif %}
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
