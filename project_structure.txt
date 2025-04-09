@@ -1,0 +1,39 @@
+项目根目录: E:\1.CodeProject\A_Thid02\File_extract_app
+
+文件结构 (已排除.git和.gitignore):
+
+File_extract_app
+    ├── app.py
+    ├── config.py
+    ├── models.py
+    ├── project_structure.py
+    ├── README.md
+    ├── requirement.txt
+    ├── static
+    │   ├── css
+    │   │   ├── admin.css
+    │   │   └── main.css
+    │   ├── images
+    │   │   └── favicon.ico
+    │   └── js
+    │       └── form-validation.js
+    ├── templates
+    │   ├── admin_add.html
+    │   ├── base.html
+    │   └── index.html
+    └── tools
+        ├── ConTxt.py
+        ├── favicon.py
+        ├── Pic.png
+        └── Source
+            ├── admin_add.html
+            ├── app.py
+            ├── config.py
+            ├── index.html
+            ├── models.py
+            └── txt
+                ├── admin_add.html.txt
+                ├── app.py.txt
+                ├── config.py.txt
+                ├── index.html.txt
+                └── models.py.txt
