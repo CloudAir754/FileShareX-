@@ -7,3 +7,4 @@ class Config:
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB
     DEFAULT_EXPIRE_DAYS = 7  # 默认7天后过期
     CODE_LENGTH = 6  # 提取码长度
+    CLEAR_ON_STARTUP = True # 新增：启动时是否清理文件和数据库

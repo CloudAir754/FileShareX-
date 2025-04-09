@@ -166,5 +166,35 @@ def cleanup():
     db.session.commit()
     print(f"清理了 {len(expired_records)} 个过期记录")
 
+
+
 if __name__ == '__main__':
+    if app.config['CLEAR_ON_STARTUP']:
+        import shutil
+        from sqlalchemy import inspect
+
+        with app.app_context():
+            # 获取数据库引擎和元数据
+            inspector = inspect(db.engine)
+            
+            # 1. 删除所有表
+            db.session.close()  # 确保没有活跃会话
+            db.reflect()  # 加载当前数据库结构
+            db.drop_all()  # 删除所有表
+            print("已删除所有数据库表")
+            
+            # 2. 清理上传文件夹
+            upload_folder = app.config['UPLOAD_FOLDER']
+            if os.path.exists(upload_folder):
+                shutil.rmtree(upload_folder)
+                print(f"已删除上传文件夹内容: {upload_folder}")
+            
+            # 3. 重新创建表结构
+            db.create_all()
+            print("已重新创建数据库表结构")
+            
+            # 4. 重新创建上传文件夹
+            os.makedirs(upload_folder, exist_ok=True)
+            print(f"已重新创建上传文件夹: {upload_folder}")
+
     app.run(debug=True)
