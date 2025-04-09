@@ -1,7 +1,7 @@
 import os
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or '1234'
+    SECRET_KEY =  '1234'
     UPLOAD_FOLDER = 'files'
     ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'zip', 'doc', 'docx', 'xls', 'xlsx'}
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB

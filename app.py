@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_from_directory, abort, redirect, url_for, flash
+from flask import Flask, render_template, request, send_from_directory, abort, redirect, url_for, flash, session
 from models import db, FileRecord, init_db, generate_md5_filename, safe_filename,DownloadRecord
 from config import Config
 from datetime import datetime, timedelta
@@ -7,9 +7,11 @@ import os
 import random
 import string
 from werkzeug.exceptions import HTTPException
+from functools import wraps
 
 app = Flask(__name__)
 app.config.from_object(Config)
+app.secret_key = app.config['SECRET_KEY']  # 设置session密钥
 
 # 初始化数据库
 init_db(app)
@@ -22,6 +24,14 @@ def generate_code(length=Config.CODE_LENGTH):
     chars = string.ascii_letters + string.digits
     return ''.join(random.choice(chars) for _ in range(length))
 
+def admin_required(f):
+    """管理员权限装饰器"""
+    @wraps(f)
+    def decorated_function(*args,**kwargs):
+        if not session.get('admin_logged_in'):
+            return redirect(url_for('admin_login'))
+        return f(*args,**kwargs)
+    return decorated_function
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -61,8 +71,11 @@ def admin_login():
         
         # 验证密码
         if password == app.config['SECRET_KEY']:
-            # 密码正确，重定向到后台首页并附加admin_key参数
-            return redirect(url_for('admin_home', admin_key=password))
+            # 设置session标记用户已登录
+            session['admin_logged_in'] = True
+            session.permanent = True  # 设置session为持久化
+            flash('登录成功', 'success')
+            return redirect(url_for('admin_home'))
         else:
             # 密码错误，返回登录页并显示错误信息
             return render_template('admin_login.html', error="密码错误，请重试")
@@ -70,10 +83,18 @@ def admin_login():
     # GET请求，显示登录页面
     return render_template('admin_login.html')
 
+@app.route('/admin/logout')
+def admin_logout():
+    # 清除session中的登录标记
+    session.pop('admin_logged_in', None)
+    flash('您已成功登出', 'success')
+    return redirect(url_for('admin_login'))
+
 @app.route('/admin/add', methods=['GET', 'POST'])
+@admin_required
 def add_file():
     if request.method == 'POST':
-        if request.form.get('admin_key') != app.config['SECRET_KEY']:
+        if not session.get('admin_logged_in'):
             abort(403)
             
         if 'file' not in request.files:
@@ -138,7 +159,6 @@ def add_file():
     
     return render_template('admin_add.html')
 
-
 @app.route('/download/<code>')
 def download_file(code):
     file_record = FileRecord.query.filter_by(code=code).first()
@@ -172,8 +192,6 @@ def download_file(code):
     
     return response
 
-
-
 @app.errorhandler(400)
 @app.errorhandler(401)
 @app.errorhandler(403)
@@ -195,8 +213,6 @@ def handle_exception(error):
     # 非HTTP异常，记录错误并返回500页面
     app.logger.error(f"服务器错误: {str(error)}", exc_info=True)
     return render_template('50x.html'), 500
-
-
 
 @app.cli.command('cleanup')
 def cleanup():
@@ -220,15 +236,9 @@ def cleanup():
     db.session.commit()
     print(f"清理了 {len(expired_records)} 个过期文件记录和 {old_downloads} 条旧下载记录")
 
-
-# 添加到 app.py 中的路由部分
 @app.route('/admin')
+@admin_required
 def admin_home():
-    admin_key = request.args.get('admin_key')
-    if not admin_key or admin_key != app.config['SECRET_KEY']:
-        # 如果没有有效的admin_key，重定向到登录页
-        return redirect(url_for('admin_login'))
-    
     # 统计信息
     total_files = FileRecord.query.count()
     active_files = FileRecord.query.filter(FileRecord.is_active == True).count()
@@ -244,10 +254,8 @@ def admin_home():
                          recent_files=recent_files)
 
 @app.route('/admin/search')
+@admin_required
 def admin_search():
-    if request.args.get('admin_key') != app.config['SECRET_KEY']:
-        abort(403)
-    
     query = request.args.get('q', '')
     page = request.args.get('page', 1, type=int)
     per_page = 20
@@ -265,14 +273,9 @@ def admin_search():
     
     return render_template('admin_records.html', files=files, query=query)
 
-
-    
-
 @app.route('/admin/file/<int:file_id>/delete', methods=['POST'])
+@admin_required
 def delete_file(file_id):
-    if request.args.get('admin_key') != app.config['SECRET_KEY']:
-        abort(403)
-    
     file_record = FileRecord.query.get_or_404(file_id)
     
     try:
@@ -291,29 +294,22 @@ def delete_file(file_id):
         flash(f'删除失败: {str(e)}', 'error')
         app.logger.error(f"删除文件失败: {str(e)}", exc_info=True)
     
-    return redirect(url_for('admin_search', admin_key=request.args.get('admin_key')))
+    return redirect(url_for('admin_search'))
 
 @app.route('/admin/file/<int:file_id>/toggle', methods=['POST'])
+@admin_required
 def toggle_file(file_id):
-    if request.args.get('admin_key') != app.config['SECRET_KEY']:
-        abort(403)
-    
     file_record = FileRecord.query.get_or_404(file_id)
     file_record.is_active = not file_record.is_active
     db.session.commit()
     
     action = "激活" if file_record.is_active else "禁用"
     flash(f'文件已{action}', 'success')
-    return redirect(url_for('admin_search', admin_key=request.args.get('admin_key')))
-
-
-
+    return redirect(url_for('admin_search'))
 
 @app.route('/admin/records')
+@admin_required
 def view_records():
-    if request.args.get('admin_key') != app.config['SECRET_KEY']:
-        abort(403)
-    
     # 获取文件记录和关联的下载记录
     files = FileRecord.query.order_by(FileRecord.created_at.desc()).all()
     
@@ -342,5 +338,4 @@ if __name__ == '__main__':
             os.makedirs(upload_folder, exist_ok=True)
             print(f"已重新创建上传文件夹: {upload_folder}")
 
-    # app.run(debug=True)
-    app.run('0.0.0.0',5000,debug=False)
+    app.run('0.0.0.0', 5000, debug=False)
