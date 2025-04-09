@@ -1,95 +1,40 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>添加文件</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        input, select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .alert {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 4px;
-        }
-        .alert-success {
-            background-color: #e8f5e9;
-            color: #2e7d32;
-        }
-        .alert-error {
-            background-color: #ffebee;
-            color: #c62828;
-        }
-        .code-info {
-            font-size: 14px;
-            color: #666;
-            margin-top: 5px;
-        }
-    </style>
-</head>
-<body>
-    <h1>添加新文件</h1>
+{% extends "base.html" %}
+
+{% block title %}添加文件{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<h1>添加新文件</h1>
+
+<form method="POST" enctype="multipart/form-data">
+    <div class="form-group">
+        <label for="admin_key">管理员密钥：</label>
+        <input type="password" id="admin_key" name="admin_key" required>
+    </div>
     
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    <div class="form-group">
+        <label for="file">选择文件：</label>
+        <input type="file" id="file" name="file" required>
+    </div>
     
-    <form method="POST" enctype="multipart/form-data">
-        <div class="form-group">
-            <label for="admin_key">管理员密钥：</label>
-            <input type="password" id="admin_key" name="admin_key" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="file">选择文件：</label>
-            <input type="file" id="file" name="file" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="expire_days">有效期（天）：</label>
-            <input type="number" id="expire_days" name="expire_days" value="7" min="1">
-        </div>
-        
-        <div class="form-group">
-            <label for="max_downloads">最大下载次数（0表示无限制）：</label>
-            <input type="number" id="max_downloads" name="max_downloads" value="0" min="0">
-        </div>
-        
-        <div class="code-info">
-            <p>系统将自动生成6位字母数字混合提取码（区分大小写）</p>
-            <p>文件将以MD5哈希值存储，但用户下载时将获得原始文件名</p>
-        </div>
-        
-        <button type="submit">上传文件</button>
-    </form>
-</body>
-</html>
+    <div class="form-group">
+        <label for="expire_days">有效期（天）：</label>
+        <input type="number" id="expire_days" name="expire_days" value="7" min="1">
+    </div>
+    
+    <div class="form-group">
+        <label for="max_downloads">最大下载次数（0表示无限制）：</label>
+        <input type="number" id="max_downloads" name="max_downloads" value="0" min="0">
+    </div>
+    
+    <div class="code-info">
+        <p>系统将自动生成6位字母数字混合提取码（区分大小写）</p>
+        <p>文件将以MD5哈希值存储，但用户下载时将获得原始文件名</p>
+    </div>
+    
+    <button type="submit">上传文件</button>
+</form>
+{% endblock %}

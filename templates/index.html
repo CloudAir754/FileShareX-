@@ -1,102 +1,16 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>文件提取服务</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 500px;
-            margin: 0 auto;
-            padding: 20px;
-            text-align: center;
-        }
-        .container {
-            background-color: #f5f5f5;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            margin-bottom: 30px;
-        }
-        input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        .alert {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 4px;
-        }
-        .alert-error {
-            background-color: #ffebee;
-            color: #c62828;
-        }
-        .alert-success {
-            background-color: #e8f5e9;
-            color: #2e7d32;
-        }
-        .code-format {
-            font-size: 14px;
-            color: #666;
-            margin-top: 5px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>文件提取服务</h1>
-        
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        
-        <form method="POST" onsubmit="return validateCode()">
-            <label for="code">请输入提取码：</label><br>
-            <input type="text" id="code" name="code" required 
-                   placeholder="例如：A1b2C3" pattern="[A-Za-z0-9]{6}" 
-                   title="6位字母数字组合">
-            <div class="code-format">提取码格式：6位字母和数字组合（区分大小写）</div>
-            <button type="submit">提取文件</button>
-        </form>
-    </div>
+{% extends "base.html" %}
 
-    <script>
-        function validateCode() {
-            const codeInput = document.getElementById('code');
-            const code = codeInput.value.trim();
-            
-            // 验证是否为6位字母数字组合
-            if (!/^[A-Za-z0-9]{6}$/.test(code)) {
-                alert('提取码必须是6位字母和数字组合（区分大小写）');
-                codeInput.focus();
-                return false;
-            }
-            return true;
-        }
-    </script>
-</body>
-</html>
+{% block content %}
+<div class="container">
+    <h1>文件提取服务</h1>
+    
+    <form method="POST">
+        <label for="code">请输入提取码：</label><br>
+        <input type="text" id="code" name="code" required 
+               placeholder="例如：A1b2C3" pattern="[A-Za-z0-9]{6}" 
+               title="6位字母数字组合">
+        <div class="code-format">提取码格式：6位字母和数字组合（区分大小写）</div>
+        <button type="submit">提取文件</button>
+    </form>
+</div>
+{% endblock %}
