@@ -147,6 +147,29 @@ def add_file():
     
     return render_template('admin_add.html')
 
+@app.route('/download/<code>')
+def download_file(code):
+    """处理文件下载"""
+    file_record = FileRecord.query.filter_by(code=code).first()
+    
+    if not file_record or not file_record.is_valid():
+        abort(404)
+    
+    # 构建文件路径
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], file_record.md5_filename)
+    
+    # 检查文件是否存在
+    if not os.path.exists(filepath):
+        abort(404)
+    
+    # 发送文件，使用原始文件名作为下载时的文件名
+    return send_from_directory(
+        app.config['UPLOAD_FOLDER'],
+        file_record.md5_filename,
+        as_attachment=True,
+        download_name=file_record.original_filename
+    )
+
 @app.cli.command('cleanup')
 def cleanup():
     """清理过期文件和数据库记录"""

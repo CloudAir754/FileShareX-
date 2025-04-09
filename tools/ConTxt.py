@@ -28,8 +28,8 @@ def add_txt_extension_and_copy(source_dir):
 
 if __name__ == "__main__":
     # 获取用户输入
-    source_dir = input("请输入源目录路径: ").strip()
-    
+    # source_dir = input("请输入源目录路径: ").strip()
+    source_dir = './tools/Source'
     # 验证目录是否存在
     if not os.path.isdir(source_dir):
         print(f"错误: 源目录 '{source_dir}' 不存在")
