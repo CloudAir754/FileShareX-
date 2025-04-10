@@ -218,7 +218,7 @@ def admin_required(f):
 
 
 @app.route('/admin/login', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")  # 更严格的速率限制
+@limiter.limit(app.config['RATE_LIMIT_ADMIN'])  # 更严格的速率限制
 def admin_login():
     if request.method == 'POST':
         ip = get_remote_address()
@@ -349,6 +349,12 @@ def add_file():
 def handle_40x_error(error):
     code = getattr(error, 'code', 500)
     return render_template('40x.html'), code
+
+# 登陆尝试过多的限制
+@app.errorhandler(429)
+def handle_429_error(error):
+    code = getattr(error, 'code', 500)
+    return render_template('429.html'), code
 
 @app.errorhandler(500)
 def handle_50x_error(error):
