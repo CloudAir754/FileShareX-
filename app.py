@@ -354,6 +354,19 @@ def add_file():
     
     return render_template('admin_add.html')
 
+# 查看所有文件情况
+@app.route('/admin/files')
+@admin_required
+def admin_files():
+    page = request.args.get('page', 1, type=int)
+    per_page = 5  # 每页显示20条记录
+    
+    # 获取所有文件记录并按上传时间降序排列
+    files = FileRecord.query.order_by(FileRecord.created_at.desc()).paginate(page=page, per_page=per_page)
+    
+    return render_template('admin_files.html', files=files)
+
+
 @app.errorhandler(400)
 @app.errorhandler(401)
 @app.errorhandler(403)

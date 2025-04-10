@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}文件记录管理{% endblock %}
+{% block title %}所有文件{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
@@ -16,23 +16,16 @@
 
 <div class="admin-container">
     <div class="admin-header-container">
-        <h1 class="admin-header">文件记录管理</h1>
+        <h1 class="admin-header">所有文件</h1>
         <a href="{{ url_for('admin_logout') }}" class="logout-btn">登出</a>
     </div>
 
-    <!-- 在admin_records.html的导航部分添加 -->
     <div class="admin-nav">
         <a href="{{ url_for('admin_home') }}">首页</a>
         <a href="{{ url_for('add_file') }}">添加文件</a>
         <a href="{{ url_for('admin_search') }}">搜索文件</a>
         <a href="{{ url_for('admin_files') }}" class="active">所有文件</a>
     </div>
-
-    <form class="search-form" action="{{ url_for('admin_search') }}" method="get">
-        <input type="hidden" name="admin_key" value="{{ request.args.get('admin_key') }}">
-        <input type="text" name="q" value="{{ query }}" placeholder="搜索文件名、提取码或描述...">
-        <button type="submit">搜索</button>
-    </form>
 
     <table class="records-table">
         <thead>
@@ -62,60 +55,29 @@
                 </td>
                 <td>{{ file.download_count }}/{{ file.max_downloads if file.max_downloads > 0 else '∞' }}</td>
                 <td class="action-buttons">
-                    <a href="{{ url_for('admin_search', admin_key=request.args.get('admin_key'), q=file.code) }}"
-                        class="btn-view">详情</a>
-                    <form method="post"
-                        action="{{ url_for('toggle_file', file_id=file.id, admin_key=request.args.get('admin_key')) }}"
-                        style="display: inline;">
+                    <form method="post" action="{{ url_for('toggle_file', file_id=file.id) }}" style="display: inline;">
                         <button type="submit" class="btn-edit">
                             {% if file.is_active %}禁用{% else %}激活{% endif %}
                         </button>
                     </form>
-                    <form method="post"
-                        action="{{ url_for('delete_file', file_id=file.id, admin_key=request.args.get('admin_key')) }}"
-                        style="display: inline;" onsubmit="return confirm('确定要删除这个文件吗？此操作不可恢复！');">
+                    <form method="post" action="{{ url_for('delete_file', file_id=file.id) }}" style="display: inline;" 
+                          onsubmit="return confirm('确定要删除这个文件吗？此操作不可恢复！');">
                         <button type="submit" class="btn-delete">删除</button>
                     </form>
                 </td>
             </tr>
-            {% if file.downloads %}
-            <tr class="downloads-row">
-                <td colspan="7">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>下载时间</th>
-                                <th>下载者IP</th>
-                                <th>用户代理</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for download in file.downloads %}
-                            <tr>
-                                <td>{{ download.download_time.strftime('%Y-%m-%d %H:%M') }}</td>
-                                <td>{{ download.downloader_ip }}</td>
-                                <td>{{ download.user_agent|truncate(50) }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </td>
-            </tr>
-            {% endif %}
             {% endfor %}
         </tbody>
     </table>
 
     <div class="pagination">
         {% if files.has_prev %}
-        <a
-            href="{{ url_for('admin_search', admin_key=request.args.get('admin_key'), q=query, page=files.prev_num) }}">上一页</a>
+        <a href="{{ url_for('admin_files', page=files.prev_num) }}">上一页</a>
         {% endif %}
 
         {% for page_num in files.iter_pages() %}
         {% if page_num %}
-        <a href="{{ url_for('admin_search', admin_key=request.args.get('admin_key'), q=query, page=page_num) }}" {% if
-            page_num==files.page %}class="active" {% endif %}>
+        <a href="{{ url_for('admin_files', page=page_num) }}" {% if page_num==files.page %}class="active" {% endif %}>
             {{ page_num }}
         </a>
         {% else %}
@@ -124,8 +86,7 @@
         {% endfor %}
 
         {% if files.has_next %}
-        <a
-            href="{{ url_for('admin_search', admin_key=request.args.get('admin_key'), q=query, page=files.next_num) }}">下一页</a>
+        <a href="{{ url_for('admin_files', page=files.next_num) }}">下一页</a>
         {% endif %}
     </div>
 </div>
