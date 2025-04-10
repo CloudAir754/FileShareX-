@@ -1,10 +1,15 @@
 from datetime import datetime,timedelta
+import pytz
 from flask_sqlalchemy import SQLAlchemy
 import os
 from werkzeug.utils import secure_filename
 import re
 import hashlib
 from config import Config
+
+# 设置时区为东八区
+EASTERN_8 = pytz.timezone('Asia/Shanghai')
+
 
 # 数据库初始化和配置
 db = SQLAlchemy()  # 创建SQLAlchemy实例，用于数据库操作
@@ -29,7 +34,7 @@ class FileRecord(db.Model):
     file_size = db.Column(db.Integer)  # 文件大小（字节）
     file_type = db.Column(db.String(32))  # 文件扩展名（如pdf、jpg）
     uploader_ip = db.Column(db.String(45))  # 上传者IP（支持IPv6，最长45字符）
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # 创建时间（UTC）
+    created_at = db.Column(db.DateTime, default=datetime.now(EASTERN_8))  # 创建时间（UTC）
     expires_at = db.Column(db.DateTime)  # 过期时间（None表示永不过期）
     download_count = db.Column(db.Integer, default=0)  # 下载次数统计
     max_downloads = db.Column(db.Integer, default=1)  # 最大允许下载次数（0表示无限制）
@@ -45,8 +50,10 @@ class FileRecord(db.Model):
             return False
         if self.max_downloads > 0 and self.download_count >= self.max_downloads:
             return False
-        if self.expires_at and datetime.utcnow() > self.expires_at:
-            return False
+        if self.expires_at :
+            now = datetime.now(EASTERN_8)
+            expires_at = self.expires_at.replace(tzinfo=EASTERN_8) if self.expires_at.tzinfo is None else self.expires_at
+            return now <= expires_at
         return True
     
 # 下载记录表
@@ -54,7 +61,7 @@ class DownloadRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)  # 主键ID
     file_id = db.Column(db.Integer, db.ForeignKey('file_record.id'), nullable=False)  # 外键关联FileRecord
     downloader_ip = db.Column(db.String(45))  # 下载者IP
-    download_time = db.Column(db.DateTime, default=datetime.utcnow)  # 下载时间（UTC）
+    download_time = db.Column(db.DateTime, default=datetime.now(EASTERN_8))  # 下载时间（UTC）
     user_agent = db.Column(db.String(256))  # 用户浏览器标识（用于日志分析）
 
 
@@ -89,14 +96,14 @@ def safe_filename(filename):
 class AdminLoginAttempt(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ip = db.Column(db.String(45), nullable=False)
-    attempt_time = db.Column(db.DateTime, default=datetime.utcnow)
+    attempt_time = db.Column(db.DateTime, default=datetime.now(EASTERN_8))
     username = db.Column(db.String(50))
     blocked_until = db.Column(db.DateTime)
     successful = db.Column(db.Boolean, default=False)
 
 # 管理员登录防护函数
 def check_admin_login_attempt(ip):
-    now = datetime.utcnow()
+    now = datetime.now(EASTERN_8)
     block_time = timedelta(seconds=Config.ADMIN_LOGIN_BLOCK_TIME)
     
     # 检查是否已被封锁

@@ -1,5 +1,6 @@
 import os
 from datetime import timedelta
+import pytz
 
 class Config:
     SECRET_KEY = '12345'  # Flask应用的安全密钥，用于加密会话数据
@@ -37,3 +38,5 @@ class Config:
     ADMIN_LOGIN_BLOCK_TIME = 300  # 封锁时间(秒)
     ADMIN_LOGIN_DELAY = 2  # 失败后的延迟响应(秒)
     ADMIN_SESSION_TIMEOUT = 1800  # 会话超时时间(秒)
+
+    TIMEZONE = pytz.timezone('Asia/Shanghai')

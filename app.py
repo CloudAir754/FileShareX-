@@ -14,6 +14,13 @@ from flask_limiter.util import get_remote_address
 import time
 from werkzeug.exceptions import RequestEntityTooLarge
 
+import pytz
+# 设置时区为东八区
+EASTERN_8 = pytz.timezone('Asia/Shanghai')
+# 修改所有datetime.utcnow()为以下形式
+def get_eastern8_time():
+    return datetime.now(EASTERN_8)
+
 app = Flask(__name__)
 app.config.from_object(Config)
 app.secret_key = app.config['SECRET_KEY']  # 设置session密钥
@@ -62,13 +69,13 @@ def admin_required(f):
         
         # 检查会话超时
         last_activity = session.get('admin_last_activity')
-        if last_activity and (datetime.utcnow().timestamp() - last_activity > app.config['ADMIN_SESSION_TIMEOUT']):
+        if last_activity and (get_eastern8_time().timestamp() - last_activity > app.config['ADMIN_SESSION_TIMEOUT']):
             session.clear()
             flash('会话已超时，请重新登录', 'warning')
             return redirect(url_for('admin_login'))
         
         # 更新最后活动时间
-        session['admin_last_activity'] = datetime.utcnow().timestamp()
+        session['admin_last_activity'] = get_eastern8_time().timestamp()
         return f(*args,**kwargs)
     return decorated_function
 
@@ -105,7 +112,7 @@ def check_brute_force(ip, code):
 
 def check_download_frequency(ip, file_id):
     """检查下载频率"""
-    now = datetime.utcnow()
+    now = get_eastern8_time()
     
     # 检查同一IP在短时间内对同一文件的下载次数
     recent_downloads = DownloadRecord.query.filter(
@@ -143,7 +150,7 @@ def index():
             return redirect(url_for('index'))
             
         if not file_record.is_valid():
-            if file_record.expires_at and datetime.utcnow() > file_record.expires_at:
+            if file_record.expires_at and get_eastern8_time() > file_record.expires_at:
                 flash('提取码已过期', 'error')
             elif file_record.max_downloads > 0 and file_record.download_count >= file_record.max_downloads:
                 flash('提取码已达到最大下载次数', 'error')
@@ -245,7 +252,7 @@ def admin_login():
             
             # 设置session
             session['admin_logged_in'] = True
-            session['admin_last_activity'] = datetime.utcnow().timestamp()
+            session['admin_last_activity'] = get_eastern8_time().timestamp()
             session.permanent = True
             app.permanent_session_lifetime = timedelta(seconds=app.config['ADMIN_SESSION_TIMEOUT'])
             
@@ -311,7 +318,7 @@ def add_file():
             file_type = os.path.splitext(original_filename)[1].lower().lstrip('.')
             
             expire_days = int(request.form.get('expire_days', app.config['DEFAULT_EXPIRE_DAYS']))
-            expires_at = datetime.utcnow() + timedelta(days=expire_days)
+            expires_at = get_eastern8_time() + timedelta(days=expire_days)
             
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], md5_filename)
             file.save(filepath)
@@ -374,7 +381,7 @@ def handle_exception(error):
 def cleanup():
     # 清理过期文件记录
     expired_records = FileRecord.query.filter(
-        FileRecord.expires_at < datetime.utcnow()
+        FileRecord.expires_at < get_eastern8_time() 
     ).all()
     
     for record in expired_records:
@@ -384,7 +391,7 @@ def cleanup():
         db.session.delete(record)
     
     # 清理30天前的下载记录
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    thirty_days_ago = get_eastern8_time() - timedelta(days=30)
     old_downloads = DownloadRecord.query.filter(
         DownloadRecord.download_time < thirty_days_ago
     ).delete()
