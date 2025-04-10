@@ -46,7 +46,8 @@ class Config:
     ADMIN_LOGIN_ATTEMPTS = 5  # 允许的最大尝试次数
     ADMIN_LOGIN_BLOCK_TIME = 300  # 封锁时间(秒)
     ADMIN_LOGIN_DELAY = 2  # 失败后的延迟响应(秒)
-    ADMIN_SESSION_TIMEOUT = 1800  # 会话超时时间(秒)
+    ADMIN_SESSION_TIMEOUT = 1800  # 会话超时时间(秒)(30分钟)
+    ADMIN_SESSION_WARNING_TIME = 300  # 新增：提前5分钟警告（单位：秒）
 
     TIMEZONE = pytz.timezone('Asia/Shanghai')
     DEFALUT_ITEM_EVERY_PAGE = 5 # 默认分页项数，比较小主要是为了方便测试

@@ -101,7 +101,7 @@ def admin_required(f):
 
 
 def check_brute_force(ip, code):
-    """检查密码爆破尝试"""
+    """检查提取码爆破尝试"""
     now = time.time()
     
     # 初始化IP记录
@@ -254,7 +254,9 @@ def admin_login():
         is_allowed, message = check_admin_login_attempt(ip)
         if not is_allowed:
             time.sleep(app.config['ADMIN_LOGIN_DELAY'] * 2)  # 更长的延迟
-            return render_template('admin_login.html', error=message)
+            return render_template('admin_login.html',
+                           session_timeout=app.config['ADMIN_SESSION_TIMEOUT'],
+                         warning_time=app.config['ADMIN_SESSION_WARNING_TIME'], error=message)
         
         password = request.form.get('admin_password', '')
         
@@ -288,9 +290,13 @@ def admin_login():
             db.session.commit()
             
             time.sleep(app.config['ADMIN_LOGIN_DELAY'])  # 失败后延迟
-            return render_template('admin_login.html', error="管理员密码错误，请重试")
+            return render_template('admin_login.html', 
+                           session_timeout=app.config['ADMIN_SESSION_TIMEOUT'],
+                         warning_time=app.config['ADMIN_SESSION_WARNING_TIME'],error="管理员密码错误，请重试")
     
-    return render_template('admin_login.html')
+    return render_template('admin_login.html',
+                           session_timeout=app.config['ADMIN_SESSION_TIMEOUT'],
+                         warning_time=app.config['ADMIN_SESSION_WARNING_TIME'])
 
 @app.route('/admin/logout')
 def admin_logout():
@@ -372,7 +378,9 @@ def add_file():
             app.logger.error(f"文件上传错误: {str(e)}", exc_info=True)
             return redirect(url_for('add_file'))
     
-    return render_template('admin_add.html')
+    return render_template('admin_add.html',
+                           session_timeout=app.config['ADMIN_SESSION_TIMEOUT'],
+                         warning_time=app.config['ADMIN_SESSION_WARNING_TIME'])
 
 # 查看所有文件情况
 @app.route('/admin/files')
@@ -384,7 +392,9 @@ def admin_files():
     # 获取所有文件记录并按上传时间降序排列
     files = FileRecord.query.order_by(FileRecord.created_at.desc()).paginate(page=page, per_page=per_page)
     
-    return render_template('admin_files.html', files=files)
+    return render_template('admin_files.html', files=files,
+                           session_timeout=app.config['ADMIN_SESSION_TIMEOUT'],
+                         warning_time=app.config['ADMIN_SESSION_WARNING_TIME'])
 
 
 @app.errorhandler(400)
@@ -452,7 +462,9 @@ def admin_home():
                          total_files=total_files,
                          active_files=active_files,
                          total_downloads=total_downloads,
-                         recent_files=recent_files)
+                         recent_files=recent_files,                         
+                           session_timeout=app.config['ADMIN_SESSION_TIMEOUT'],
+                         warning_time=app.config['ADMIN_SESSION_WARNING_TIME'])
 
 @app.route('/admin/search')
 @admin_required
@@ -472,7 +484,9 @@ def admin_search():
     else:
         files = FileRecord.query.order_by(FileRecord.created_at.desc()).paginate(page=page, per_page=per_page)
     
-    return render_template('admin_records.html', files=files, query=query)
+    return render_template('admin_records.html', files=files, query=query,                         
+                           session_timeout=app.config['ADMIN_SESSION_TIMEOUT'],
+                         warning_time=app.config['ADMIN_SESSION_WARNING_TIME'])
 
 @app.route('/admin/file/<int:file_id>/delete', methods=['POST'])
 @admin_required
@@ -514,7 +528,9 @@ def view_records():
     # 获取文件记录和关联的下载记录
     files = FileRecord.query.order_by(FileRecord.created_at.desc()).all()
     
-    return render_template('admin_records.html', files=files)
+    return render_template('admin_records.html', files=files,                         
+                           session_timeout=app.config['ADMIN_SESSION_TIMEOUT'],
+                         warning_time=app.config['ADMIN_SESSION_WARNING_TIME'])
 
 def is_allowed_file(filename, allowed_extensions=None):
     """检查文件扩展名是否在允许列表中"""
