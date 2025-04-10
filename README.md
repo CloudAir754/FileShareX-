@@ -135,3 +135,4 @@ python app.py --clear-on-startup
 2. 建议启用 `SESSION_COOKIE_SECURE` (HTTPS环境下)
 3. 文件存储在本地，需要考虑磁盘空间
 4. 默认配置适合小型应用，高并发环境需要调整限制参数
+5. 部分代码由AI开发；平台包括：Deepseek V3（官网）、Deepseek V3（腾讯元宝）
