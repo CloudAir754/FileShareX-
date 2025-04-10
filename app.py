@@ -28,8 +28,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='运行文件分享服务')
     parser.add_argument('--admin-password', type=str, help='设置管理员密码')
     parser.add_argument('--clear-on-startup', action='store_true', help='启动时清空数据库和上传文件夹')
-    parser.add_argument('--host', type=str, default='0.0.0.0', help='绑定主机地址')
-    parser.add_argument('--port', type=int, default=5000, help='绑定端口号')
+    parser.add_argument('--host', type=str, default=Config.DEFALUT_HOST, help='绑定主机地址')
+    parser.add_argument('--port', type=int, default=Config.DEFALUT_PORT, help='绑定端口号')
     return parser.parse_args()
 
 args = parse_args()

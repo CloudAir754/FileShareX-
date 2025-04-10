@@ -50,3 +50,6 @@ class Config:
 
     TIMEZONE = pytz.timezone('Asia/Shanghai')
     DEFALUT_ITEM_EVERY_PAGE = 5 # 默认分页项数，比较小主要是为了方便测试
+
+    DEFALUT_HOST = '0.0.0.0'
+    DEFALUT_PORT = 5000
