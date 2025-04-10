@@ -15,15 +15,35 @@ import time
 from werkzeug.exceptions import RequestEntityTooLarge
 
 import pytz
+import argparse  # 添加 argparse 模块
 # 设置时区为东八区
 EASTERN_8 = pytz.timezone('Asia/Shanghai')
 # 修改所有datetime.utcnow()为以下形式
 def get_eastern8_time():
     return datetime.now(EASTERN_8)
 
+
+# 在创建 Flask 应用之前解析命令行参数
+def parse_args():
+    parser = argparse.ArgumentParser(description='运行文件分享服务')
+    parser.add_argument('--admin-password', type=str, help='设置管理员密码')
+    parser.add_argument('--clear-on-startup', action='store_true', help='启动时清空数据库和上传文件夹')
+    parser.add_argument('--host', type=str, default='0.0.0.0', help='绑定主机地址')
+    parser.add_argument('--port', type=int, default=5000, help='绑定端口号')
+    return parser.parse_args()
+
+args = parse_args()
+
+
 app = Flask(__name__)
 app.config.from_object(Config)
 app.secret_key = app.config['SECRET_KEY']  # 设置session密钥
+
+# 根据命令行参数覆盖配置
+if args.admin_password:
+    app.config['ADMIN_PASSWORD'] = args.admin_password
+if args.clear_on_startup:
+    app.config['CLEAR_ON_STARTUP'] = True
 
 # 初始化数据库
 init_db(app)
@@ -531,4 +551,4 @@ if __name__ == '__main__':
             os.makedirs(upload_folder, exist_ok=True)
             print(f"已重新创建上传文件夹: {upload_folder}")
 
-    app.run('0.0.0.0', 5000, debug=False)
+    app.run(host=args.host, port=args.port, debug=False)

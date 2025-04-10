@@ -19,7 +19,7 @@ class Config:
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB，限制上传文件的最大大小
     DEFAULT_EXPIRE_DAYS = 7  # 默认7天后过期，文件记录的默认有效期
     CODE_LENGTH = 6  # 提取码的长度（字符数）
-    CLEAR_ON_STARTUP = True  # 启动时是否清空数据库和上传文件夹（用于开发和测试）
+    CLEAR_ON_STARTUP = False  # 启动时是否清空数据库和上传文件夹（用于开发和测试）
     
     # 速率限制配置
     RATE_LIMIT_DEFAULT = "200 per day, 50 per hour"  # 全局默认请求限制（每天200次，每小时50次）
