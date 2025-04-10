@@ -359,7 +359,7 @@ def add_file():
 @admin_required
 def admin_files():
     page = request.args.get('page', 1, type=int)
-    per_page = 5  # 每页显示20条记录
+    per_page = app.config['DEFALUT_ITEM_EVERY_PAGE']  # 每页显示20条记录
     
     # 获取所有文件记录并按上传时间降序排列
     files = FileRecord.query.order_by(FileRecord.created_at.desc()).paginate(page=page, per_page=per_page)

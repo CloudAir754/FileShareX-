@@ -8,7 +8,7 @@ class Config:
     ALLOWED_EXTENSIONS = {
     'images': ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'],
     'documents': ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'],
-    'archives': ['rar', '7z', 'tar', 'gz'], #'zip', 
+    'archives': ['zip', 'rar', '7z', 'tar', 'gz'], 
     'audio': ['mp3', 'wav', 'ogg', 'flac'],
     'video': ['mp4', 'avi', 'mov', 'mkv', 'flv'],
     # 添加其他需要的类型
@@ -49,3 +49,4 @@ class Config:
     ADMIN_SESSION_TIMEOUT = 1800  # 会话超时时间(秒)
 
     TIMEZONE = pytz.timezone('Asia/Shanghai')
+    DEFALUT_ITEM_EVERY_PAGE = 5 # 默认分页项数，比较小主要是为了方便测试
