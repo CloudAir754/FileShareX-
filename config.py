@@ -15,7 +15,7 @@ class Config:
     RATE_LIMIT_DEFAULT = "200 per day, 50 per hour"  # 全局默认请求限制（每天200次，每小时50次）
     RATE_LIMIT_INDEX = "10 per minute"  # 首页/提取码尝试的请求限制（每分钟10次）
     RATE_LIMIT_DOWNLOAD = "3 per minute"  # 下载请求的限制（每分钟3次）
-    RATE_LIMIT_ADMIN = "30 per minute"  # 新增的管理员接口速率限制
+    RATE_LIMIT_ADMIN = "5 per minute"  # 新增的管理员接口速率限制
 
     # 会话配置
     PERMANENT_SESSION_LIFETIME = timedelta(minutes=5)  # 会话有效期5分钟
@@ -27,8 +27,13 @@ class Config:
     SESSION_COOKIE_HTTPONLY = True  # 防止JavaScript访问cookie
     SESSION_COOKIE_SAMESITE = 'Lax'  # 防止CSRF攻击的cookie策略
 
-        # 新增的密码爆破防护配置
+    # 新增的密码(提取码)爆破防护配置
     PASSWORD_MAX_ATTEMPTS = 2  # 5分钟内最多尝试次数
     PASSWORD_BLOCK_TIME = 300  # 封锁时间(秒)
     DOWNLOAD_FREQUENCY_LIMIT = 3  # 下载频率检查窗口（5分钟）内同一文件下载次数限制
     DOWNLOAD_FREQUENCY_WINDOW = 5  # 下载频率检查窗口(分钟)
+
+    ADMIN_LOGIN_ATTEMPTS = 5  # 允许的最大尝试次数
+    ADMIN_LOGIN_BLOCK_TIME = 300  # 封锁时间(秒)
+    ADMIN_LOGIN_DELAY = 2  # 失败后的延迟响应(秒)
+    ADMIN_SESSION_TIMEOUT = 1800  # 会话超时时间(秒)

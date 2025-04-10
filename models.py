@@ -1,9 +1,10 @@
-from datetime import datetime
+from datetime import datetime,timedelta
 from flask_sqlalchemy import SQLAlchemy
 import os
 from werkzeug.utils import secure_filename
 import re
 import hashlib
+from config import Config
 
 # 数据库初始化和配置
 db = SQLAlchemy()  # 创建SQLAlchemy实例，用于数据库操作
@@ -82,3 +83,49 @@ def safe_filename(filename):
         ext = '.' + ext
     
     return f"{basename}{ext}"
+
+
+# 创建管理员登录尝试记录模型
+class AdminLoginAttempt(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ip = db.Column(db.String(45), nullable=False)
+    attempt_time = db.Column(db.DateTime, default=datetime.utcnow)
+    username = db.Column(db.String(50))
+    blocked_until = db.Column(db.DateTime)
+    successful = db.Column(db.Boolean, default=False)
+
+# 管理员登录防护函数
+def check_admin_login_attempt(ip):
+    now = datetime.utcnow()
+    block_time = timedelta(seconds=Config.ADMIN_LOGIN_BLOCK_TIME)
+    
+    # 检查是否已被封锁
+    blocked = AdminLoginAttempt.query.filter(
+        AdminLoginAttempt.ip == ip,
+        AdminLoginAttempt.blocked_until > now
+    ).first()
+    
+    if blocked:
+        remaining_time = (blocked.blocked_until - now).seconds
+        return False, f"管理员登录尝试过于频繁，请等待 {remaining_time} 秒后再试"
+    
+    # 检查最近失败尝试次数
+    recent_failures = AdminLoginAttempt.query.filter(
+        AdminLoginAttempt.ip == ip,
+        AdminLoginAttempt.attempt_time > now - block_time,
+        AdminLoginAttempt.successful == False
+    ).count()
+    
+    if recent_failures >= Config.ADMIN_LOGIN_ATTEMPTS:
+        # 封锁IP
+        blocked_until = now + block_time
+        new_block = AdminLoginAttempt(
+            ip=ip,
+            blocked_until=blocked_until,
+            successful=False
+        )
+        db.session.add(new_block)
+        db.session.commit()
+        return False, f"管理员登录尝试次数过多，IP已被暂时封锁{block_time.total_seconds()/60}分钟"
+    
+    return True, ""

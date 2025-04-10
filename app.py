@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, send_from_directory, abort, redirect, url_for, flash, session
-from models import db, FileRecord, init_db, generate_md5_filename, safe_filename,DownloadRecord
+from models import db, FileRecord, init_db, generate_md5_filename, safe_filename,DownloadRecord,check_admin_login_attempt,AdminLoginAttempt
 from config import Config
 from datetime import datetime, timedelta
 
@@ -54,15 +54,24 @@ def handle_413(error):
 
 
 def admin_required(f):
-    """管理员权限装饰器"""
+    """增强的管理员权限装饰器"""
     @wraps(f)
     def decorated_function(*args,**kwargs):
         if not session.get('admin_logged_in'):
             return redirect(url_for('admin_login'))
-        # 每次访问admin页面时刷新session
-        session.permanent = True
+        
+        # 检查会话超时
+        last_activity = session.get('admin_last_activity')
+        if last_activity and (datetime.utcnow().timestamp() - last_activity > app.config['ADMIN_SESSION_TIMEOUT']):
+            session.clear()
+            flash('会话已超时，请重新登录', 'warning')
+            return redirect(url_for('admin_login'))
+        
+        # 更新最后活动时间
+        session['admin_last_activity'] = datetime.utcnow().timestamp()
         return f(*args,**kwargs)
     return decorated_function
+
 
 def check_brute_force(ip, code):
     """检查密码爆破尝试"""
@@ -189,8 +198,14 @@ def download_file(code):
 
 def generate_code(length=Config.CODE_LENGTH):
     """生成指定位数的字母数字混合提取码（大小写敏感）"""
-    chars = string.ascii_letters + string.digits
-    return ''.join(random.choice(chars) for _ in range(length))
+    # 确保包含大小写字母和数字
+    while True:
+        chars = string.ascii_letters + string.digits
+        code = ''.join(random.SystemRandom().choice(chars) for _ in range(length))
+        # 确保包含至少一个数字和一个字母
+        if (any(c.isdigit() for c in code) and 
+            any(c.isalpha() for c in code)):
+            return code
 
 def admin_required(f):
     """管理员权限装饰器"""
@@ -203,22 +218,51 @@ def admin_required(f):
 
 
 @app.route('/admin/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")  # 更严格的速率限制
 def admin_login():
     if request.method == 'POST':
+        ip = get_remote_address()
+        
+        # 检查登录尝试
+        is_allowed, message = check_admin_login_attempt(ip)
+        if not is_allowed:
+            time.sleep(app.config['ADMIN_LOGIN_DELAY'] * 2)  # 更长的延迟
+            return render_template('admin_login.html', error=message)
+        
         password = request.form.get('admin_password', '')
+        
+        # 验证密码前添加延迟
+        time.sleep(app.config['ADMIN_LOGIN_DELAY'])
         
         # 验证密码
         if password == app.config['ADMIN_PASSWORD']:
-            # 设置session标记用户已登录
+            # 记录成功尝试
+            attempt = AdminLoginAttempt(
+                ip=ip,
+                successful=True
+            )
+            db.session.add(attempt)
+            
+            # 设置session
             session['admin_logged_in'] = True
-            session.permanent = True  # 设置session为持久化
-            flash('登录成功', 'success')
+            session['admin_last_activity'] = datetime.utcnow().timestamp()
+            session.permanent = True
+            app.permanent_session_lifetime = timedelta(seconds=app.config['ADMIN_SESSION_TIMEOUT'])
+            
+            flash('管理员登录成功', 'success')
             return redirect(url_for('admin_home'))
         else:
-            # 密码错误，返回登录页并显示错误信息
-            return render_template('admin_login.html', error="密码错误，请重试")
+            # 记录失败尝试
+            attempt = AdminLoginAttempt(
+                ip=ip,
+                successful=False
+            )
+            db.session.add(attempt)
+            db.session.commit()
+            
+            time.sleep(app.config['ADMIN_LOGIN_DELAY'])  # 失败后延迟
+            return render_template('admin_login.html', error="管理员密码错误，请重试")
     
-    # GET请求，显示登录页面
     return render_template('admin_login.html')
 
 @app.route('/admin/logout')
