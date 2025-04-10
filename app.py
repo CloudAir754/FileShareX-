@@ -296,6 +296,11 @@ def add_file():
             flash('没有选择文件', 'error')
             return redirect(url_for('add_file'))
         
+        # 检查文件类型
+        if not is_allowed_file(file.filename):
+            flash('不允许上传此类型的文件，如需上传，请联系管理员维护。', 'error')
+            return redirect(url_for('add_file'))
+
         try:
             max_attempts = 10
             for _ in range(max_attempts):
@@ -477,6 +482,18 @@ def view_records():
     files = FileRecord.query.order_by(FileRecord.created_at.desc()).all()
     
     return render_template('admin_records.html', files=files)
+
+def is_allowed_file(filename, allowed_extensions=None):
+    """检查文件扩展名是否在允许列表中"""
+    if allowed_extensions is None:
+        allowed_extensions = Config.ALLOWED_EXTENSIONS_FLAT
+    
+    # 获取文件扩展名并转换为小写
+    ext = os.path.splitext(filename)[1][1:].lower()
+    
+    # 检查扩展名是否在允许列表中
+    return ext in allowed_extensions if ext else False
+
 
 if __name__ == '__main__':
     if app.config['CLEAR_ON_STARTUP']:

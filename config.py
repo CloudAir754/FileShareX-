@@ -5,8 +5,17 @@ import pytz
 class Config:
     SECRET_KEY = '12345'  # Flask应用的安全密钥，用于加密会话数据
     UPLOAD_FOLDER = 'files'  # 文件上传保存的目录
-    ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'
-                          , 'zip', 'doc', 'docx', 'xls', 'xlsx'}  # 允许上传的文件扩展名
+    ALLOWED_EXTENSIONS = {
+    'images': ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'],
+    'documents': ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'],
+    'archives': ['rar', '7z', 'tar', 'gz'], #'zip', 
+    'audio': ['mp3', 'wav', 'ogg', 'flac'],
+    'video': ['mp4', 'avi', 'mov', 'mkv', 'flv'],
+    # 添加其他需要的类型
+    }
+    # 合并所有允许的扩展名
+    ALLOWED_EXTENSIONS_FLAT = [ext for group in ALLOWED_EXTENSIONS.values() for ext in group]
+
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB，限制上传文件的最大大小
     DEFAULT_EXPIRE_DAYS = 7  # 默认7天后过期，文件记录的默认有效期
     CODE_LENGTH = 6  # 提取码的长度（字符数）
