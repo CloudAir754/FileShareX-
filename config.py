@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytz
 
 class Config:
-    SECRET_KEY = '12345'  # Flask应用的安全密钥，用于加密会话数据
+    SECRET_KEY = os.urandom(24)  # 每次启动重新生成  # Flask应用的安全密钥，用于加密会话数据
     UPLOAD_FOLDER = 'files'  # 文件上传保存的目录
     ALLOWED_EXTENSIONS = {
     'images': ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'],
@@ -11,12 +11,13 @@ class Config:
     'archives': ['zip', 'rar', '7z', 'tar', 'gz'], 
     'audio': ['mp3', 'wav', 'ogg', 'flac'],
     'video': ['mp4', 'avi', 'mov', 'mkv', 'flv'],
+    'appication':['app','apk'],
     # 添加其他需要的类型
     }
     # 合并所有允许的扩展名
     ALLOWED_EXTENSIONS_FLAT = [ext for group in ALLOWED_EXTENSIONS.values() for ext in group]
 
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB，限制上传文件的最大大小
+    MAX_CONTENT_LENGTH = 200 * 1024 * 1024  # 200MB，限制上传文件的最大大小
     DEFAULT_EXPIRE_DAYS = 7  # 默认7天后过期，文件记录的默认有效期
     CODE_LENGTH = 6  # 提取码的长度（字符数）
     CLEAR_ON_STARTUP = False  # 启动时是否清空数据库和上传文件夹（用于开发和测试）
@@ -50,7 +51,7 @@ class Config:
     ADMIN_SESSION_WARNING_TIME = 300  # 新增：提前5分钟警告（单位：秒）
 
     TIMEZONE = pytz.timezone('Asia/Shanghai')
-    DEFALUT_ITEM_EVERY_PAGE = 5 # 默认分页项数，比较小主要是为了方便测试
+    DEFALUT_ITEM_EVERY_PAGE = 20 # 默认分页项数
 
     DEFALUT_HOST = '0.0.0.0'
     DEFALUT_PORT = 5000
