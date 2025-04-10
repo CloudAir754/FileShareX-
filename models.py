@@ -1,73 +1,83 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 import os
-import hashlib
 from werkzeug.utils import secure_filename
 import re
+import hashlib
 
-db = SQLAlchemy()
+# 数据库初始化和配置
+db = SQLAlchemy()  # 创建SQLAlchemy实例，用于数据库操作
 
-class FileRecord(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    code = db.Column(db.String(32), unique=True, nullable=False)
-    md5_filename = db.Column(db.String(32), nullable=False)
-    original_filename = db.Column(db.String(256), nullable=False)
-    file_size = db.Column(db.Integer)  # 文件大小(字节)
-    file_type = db.Column(db.String(32))  # 文件类型
-    uploader_ip = db.Column(db.String(45))  # 支持IPv6(最长45字符)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    expires_at = db.Column(db.DateTime)
-    download_count = db.Column(db.Integer, default=0)
-    max_downloads = db.Column(db.Integer, default=1)
-    is_active = db.Column(db.Boolean, default=True)
-    description = db.Column(db.String(500))  # 文件描述
+def init_db(app):
+    """初始化数据库配置"""
+    basedir = os.path.abspath(os.path.dirname(__file__))  # 获取当前文件所在目录的绝对路径
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'filecodes.db')  # 使用SQLite数据库，文件名为filecodes.db
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # 禁用SQLAlchemy的事件系统（节省资源）
     
-    # 与下载记录的关联关系
+    db.init_app(app)  # 绑定Flask应用
+    with app.app_context():
+        db.create_all()  # 创建所有定义的表
+
+
+# 数据模型（文件记录表）
+class FileRecord(db.Model):
+    id = db.Column(db.Integer, primary_key=True)  # 主键ID
+    code = db.Column(db.String(32), unique=True, nullable=False)  # 唯一提取码（不允许空值）
+    md5_filename = db.Column(db.String(32), nullable=False)  # 文件MD5哈希值作为存储名（防重复）
+    original_filename = db.Column(db.String(256), nullable=False)  # 原始文件名
+    file_size = db.Column(db.Integer)  # 文件大小（字节）
+    file_type = db.Column(db.String(32))  # 文件扩展名（如pdf、jpg）
+    uploader_ip = db.Column(db.String(45))  # 上传者IP（支持IPv6，最长45字符）
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # 创建时间（UTC）
+    expires_at = db.Column(db.DateTime)  # 过期时间（None表示永不过期）
+    download_count = db.Column(db.Integer, default=0)  # 下载次数统计
+    max_downloads = db.Column(db.Integer, default=1)  # 最大允许下载次数（0表示无限制）
+    is_active = db.Column(db.Boolean, default=True)  # 是否启用（管理员可禁用）
+    description = db.Column(db.String(500))  # 文件描述（可选）
+
+    # 关联关系：一对多（一个文件对应多条下载记录）
     downloads = db.relationship('DownloadRecord', backref='file', lazy=True, cascade="all, delete-orphan")
 
     def is_valid(self):
+        """检查文件是否有效（未过期、未超下载次数、已启用）"""
         if not self.is_active:
             return False
-        
         if self.max_downloads > 0 and self.download_count >= self.max_downloads:
             return False
-            
         if self.expires_at and datetime.utcnow() > self.expires_at:
             return False
-            
         return True
-
-class DownloadRecord(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    file_id = db.Column(db.Integer, db.ForeignKey('file_record.id'), nullable=False)
-    downloader_ip = db.Column(db.String(45))  # 下载者IP
-    download_time = db.Column(db.DateTime, default=datetime.utcnow)  # 下载时间
-    user_agent = db.Column(db.String(256))  # 用户代理信息
-
-def init_db(app):
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'filecodes.db')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
-    db.init_app(app)
-    with app.app_context():
-        db.create_all()
+# 下载记录表
+class DownloadRecord(db.Model):
+    id = db.Column(db.Integer, primary_key=True)  # 主键ID
+    file_id = db.Column(db.Integer, db.ForeignKey('file_record.id'), nullable=False)  # 外键关联FileRecord
+    downloader_ip = db.Column(db.String(45))  # 下载者IP
+    download_time = db.Column(db.DateTime, default=datetime.utcnow)  # 下载时间（UTC）
+    user_agent = db.Column(db.String(256))  # 用户浏览器标识（用于日志分析）
 
+
+# 工具函数
 def generate_md5_filename(file_stream):
+    """生成文件的MD5哈希值作为存储名（避免文件名冲突）"""
     md5 = hashlib.md5()
-    for chunk in iter(lambda: file_stream.read(4096), b''):
+    for chunk in iter(lambda: file_stream.read(4096), b''):  # 分块读取文件（节省内存）
         md5.update(chunk)
-    file_stream.seek(0)
-    return md5.hexdigest()
+    file_stream.seek(0)  # 重置文件指针位置
+    return md5.hexdigest()  # 返回32位MD5字符串
+
 
 def safe_filename(filename):
+    """清理文件名中的非法字符（防止路径遍历攻击）"""
     basename, ext = os.path.splitext(filename)
-    basename = re.sub(r'[\\/*?:"<>|]', "", basename)
-    basename = basename.strip()
+    basename = re.sub(r'[\\/*?:"<>|]', "", basename)  # 移除非法字符
+    basename = basename.strip()  # 去除首尾空格
     
+    # 处理空文件名的情况（例如用户上传了一个无名称的文件）
     if not basename:
-        basename = f"file_{int(datetime.now().timestamp())}"
+        basename = f"file_{int(datetime.now().timestamp())}"  # 用时间戳生成默认名
     
+    # 确保扩展名格式正确（如".txt"而非"txt"）
     if ext and not ext.startswith('.'):
         ext = '.' + ext
     
