@@ -25,7 +25,7 @@ init_db(app)
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,  # 使用客户端IP作为限制依据
-    default_limits=["200 per day", "50 per hour"]  # 全局默认限制
+    default_limits= [app.config['RATE_LIMIT_DEFAULT']] # 全局默认限制
 )
 
 # 密码尝试记录
@@ -83,15 +83,14 @@ def check_brute_force(ip, code):
     # 清理过期的尝试记录（只保留最近5分钟内的）
     password_attempts[ip]['attempts'] = [
         t for t in password_attempts[ip]['attempts'] 
-        if t > now - 300
+        if t > now - app.config['PASSWORD_BLOCK_TIME']
     ]
     
     # 检查尝试次数
-    max_attempts = 10  # 5分钟内最多尝试10次
-    if len(password_attempts[ip]['attempts']) > max_attempts:
+    if len(password_attempts[ip]['attempts']) > app.config['PASSWORD_MAX_ATTEMPTS']:
         # 封锁IP 5分钟
-        password_attempts[ip]['blocked_until'] = now + 300
-        return False, "尝试次数过多，IP已被暂时封锁5分钟"
+        password_attempts[ip]['blocked_until'] = now +app.config['PASSWORD_BLOCK_TIME']
+        return False, f"尝试次数过多，IP已被暂时封锁{app.config['PASSWORD_BLOCK_TIME']/60} 分钟"
     
     return True, ""
 
@@ -103,16 +102,16 @@ def check_download_frequency(ip, file_id):
     recent_downloads = DownloadRecord.query.filter(
         DownloadRecord.downloader_ip == ip,
         DownloadRecord.file_id == file_id,
-        DownloadRecord.download_time > now - timedelta(minutes=5)
+        DownloadRecord.download_time > now - timedelta(minutes=app.config['DOWNLOAD_FREQUENCY_WINDOW'])
     ).count()
     
-    if recent_downloads >= 3:  # 5分钟内最多下载3次
+    if recent_downloads >= app.config['DOWNLOAD_FREQUENCY_LIMIT']:
         return False
     
     return True
 
 @app.route('/', methods=['GET', 'POST'])
-@limiter.limit("10 per minute")  # 限制每分钟10次请求
+@limiter.limit(app.config['RATE_LIMIT_INDEX'])  # 限制每分钟10次请求
 def index():
     if request.method == 'POST':
         code = request.form.get('code', '').strip()
@@ -148,7 +147,7 @@ def index():
     return render_template('index.html')
 
 @app.route('/download/<code>')
-@limiter.limit("3 per minute")  # 限制每分钟3次下载
+@limiter.limit(app.config['RATE_LIMIT_DOWNLOAD'])  # 限制每分钟3次下载
 def download_file(code):
     ip = get_remote_address()
     file_record = FileRecord.query.filter_by(code=code).first()
