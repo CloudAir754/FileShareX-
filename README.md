@@ -139,3 +139,25 @@ python app.py --clear-on-startup
 
 ## Docker 化
 1. 所有原内容移入app
+2. 添加Dockerfile，docker-compose.yml
+3. 
+```
+# 构建并启动服务
+docker-compose up -d --build
+
+# 查看运行状态
+docker-compose ps
+
+# 查看日志
+docker-compose logs -f
+docker-compose logs -f flask
+
+# 停止并删除旧容器
+docker-compose down
+
+# 重新构建
+docker-compose build
+
+# 启动服务
+docker-compose up -d
+```
