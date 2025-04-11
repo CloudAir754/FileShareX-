@@ -4,7 +4,10 @@ import pytz
 
 class Config:
     SECRET_KEY = os.urandom(24)  # 每次启动重新生成  # Flask应用的安全密钥，用于加密会话数据
-    UPLOAD_FOLDER = 'files'  # 文件上传保存的目录
+    # 获取 app.py 所在目录的绝对路径（假设 config.py 和 app.py 同级）
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    UPLOAD_FOLDER = os.path.join(BASE_DIR, 'files')  # 直接指向 ./app/files
+
     ALLOWED_EXTENSIONS = {
     'images': ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'],
     'documents': ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'],

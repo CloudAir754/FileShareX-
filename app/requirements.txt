@@ -1,5 +1,5 @@
 Flask==3.1.0
-flask_limiter==3.12
+flask_limiter==3.11.0
 flask_sqlalchemy==3.1.1
 Pillow==11.1.0
 pytz==2024.1

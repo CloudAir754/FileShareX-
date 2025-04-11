@@ -9,8 +9,6 @@ services:
       - ./app:/app
     environment:
       - FLASK_ENV=production
-    ports:
-      - "5000:5000"
     networks:
       - app_network
 
