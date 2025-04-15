@@ -137,11 +137,23 @@ python app.py --clear-on-startup
 4. 默认配置适合小型应用，高并发环境需要调整限制参数
 5. 部分代码由AI开发；平台包括：Deepseek V3（官网）、Deepseek V3（腾讯元宝）
 
+## 后台运行
+```
+nohup python your_script.py > output.log 2>&1 &
+```
+
+
 ## Docker 化
 1. 所有原内容移入app
 2. 添加Dockerfile，docker-compose.yml
 3. 
 ```
+
+# 压缩和解压缩
+tar -czvf my_project.tar.gz my_project/
+scp my_project.tar.gz user@example.com:~/downloads/
+tar -xzvf my_project.tar.gz
+
 # 构建并启动服务
 docker-compose up -d --build
 

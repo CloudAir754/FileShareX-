@@ -35,7 +35,7 @@ class FileRecord(db.Model):
     file_type = db.Column(db.String(32))  # 文件扩展名（如pdf、jpg）
     uploader_ip = db.Column(db.String(45))  # 上传者IP（支持IPv6，最长45字符）
     created_at = db.Column(db.DateTime, default=datetime.now(EASTERN_8))  # 创建时间（UTC）
-    expires_at = db.Column(db.DateTime)  # 过期时间（None表示永不过期）
+    expires_at = db.Column(db.DateTime(timezone=True))  # 添加 timezone=True
     download_count = db.Column(db.Integer, default=0)  # 下载次数统计
     max_downloads = db.Column(db.Integer, default=1)  # 最大允许下载次数（0表示无限制）
     is_active = db.Column(db.Boolean, default=True)  # 是否启用（管理员可禁用）
