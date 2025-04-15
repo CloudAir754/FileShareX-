@@ -98,7 +98,7 @@ class AdminLoginAttempt(db.Model):
     ip = db.Column(db.String(45), nullable=False)
     attempt_time = db.Column(db.DateTime, default=datetime.now(EASTERN_8))
     username = db.Column(db.String(50))
-    blocked_until = db.Column(db.DateTime)
+    blocked_until = db.Column(db.DateTime(timezone=True))
     successful = db.Column(db.Boolean, default=False)
 
 # 管理员登录防护函数

@@ -177,8 +177,10 @@ def index():
             return redirect(url_for('index'))
             
         if not file_record.is_valid():
-            print(file_record.expires_at)
-            print(get_eastern8_time())
+            # print(file_record.created_at)
+            # print(file_record.expires_at)
+            # print(get_eastern8_time())
+            # print(get_eastern8_time().timestamp())
 
             if file_record.expires_at and get_eastern8_time() > file_record.expires_at:
                 flash('提取码已过期', 'error')
