@@ -23,12 +23,12 @@ class Config:
     MAX_CONTENT_LENGTH = 200 * 1024 * 1024  # 200MB，限制上传文件的最大大小
     DEFAULT_EXPIRE_DAYS = 7  # 默认7天后过期，文件记录的默认有效期
     CODE_LENGTH = 6  # 提取码的长度（字符数）
-    CLEAR_ON_STARTUP = False  # 启动时是否清空数据库和上传文件夹（用于开发和测试）
+    CLEAR_ON_STARTUP = True  # 启动时是否清空数据库和上传文件夹（用于开发和测试）
     
     # 速率限制配置
     RATE_LIMIT_DEFAULT = "200 per day, 50 per hour"  # 全局默认请求限制（每天200次，每小时50次）
     RATE_LIMIT_INDEX = "100 per day, 10 per minute"  # 首页/提取码尝试的请求限制（每分钟10次）
-    RATE_LIMIT_DOWNLOAD = "100 per day, 5 per minute"  # 下载请求的限制（每分钟3次）
+    RATE_LIMIT_DOWNLOAD = "100 per day, 5 per minute"  # 下载请求的限制（每分钟5次）
     RATE_LIMIT_ADMIN = "20 per day, 3 per minute"  # 管理员接口速率限制
 
     # 会话配置

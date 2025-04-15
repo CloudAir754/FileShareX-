@@ -20,7 +20,7 @@ import argparse  # 添加 argparse 模块
 EASTERN_8 = pytz.timezone('Asia/Shanghai')
 # 修改所有datetime.utcnow()为以下形式
 def get_eastern8_time():
-    return datetime.now(EASTERN_8)
+    return datetime.now(EASTERN_8).replace(tzinfo=None)  # 去掉时区信息
 
 
 
@@ -177,6 +177,9 @@ def index():
             return redirect(url_for('index'))
             
         if not file_record.is_valid():
+            print(file_record.expires_at)
+            print(get_eastern8_time())
+
             if file_record.expires_at and get_eastern8_time() > file_record.expires_at:
                 flash('提取码已过期', 'error')
             elif file_record.max_downloads > 0 and file_record.download_count >= file_record.max_downloads:
@@ -588,4 +591,4 @@ if __name__ == '__main__':
             os.makedirs(upload_folder, exist_ok=True)
             print(f"已重新创建上传文件夹: {upload_folder}")
 
-    app.run(host=args.host, port=args.port, debug=False)
+    app.run(host=args.host, port=args.port, debug=True)
