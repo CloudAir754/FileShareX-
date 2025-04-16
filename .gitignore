@@ -1,6 +1,3 @@
-__pycache__
-
-tools/Source
-
-files
-filecodes.db
+app/__pycache__
+app/files
+app/filecodes.db

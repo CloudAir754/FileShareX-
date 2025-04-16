@@ -20,7 +20,7 @@ import argparse  # 添加 argparse 模块
 EASTERN_8 = pytz.timezone('Asia/Shanghai')
 # 修改所有datetime.utcnow()为以下形式
 def get_eastern8_time():
-    return datetime.now(EASTERN_8)
+    return datetime.now(EASTERN_8).replace(tzinfo=None)  # 去掉时区信息
 
 
 # 在创建 Flask 应用之前解析命令行参数
@@ -38,6 +38,10 @@ args = parse_args()
 app = Flask(__name__)
 app.config.from_object(Config)
 app.secret_key = app.config['SECRET_KEY']  # 设置session密钥
+
+# 需要在Flask中显式配置信任代理头部
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 # 根据命令行参数覆盖配置
 if args.admin_password:
@@ -170,6 +174,7 @@ def index():
             return redirect(url_for('index'))
             
         if not file_record.is_valid():
+
             if file_record.expires_at and get_eastern8_time() > file_record.expires_at:
                 flash('提取码已过期', 'error')
             elif file_record.max_downloads > 0 and file_record.download_count >= file_record.max_downloads:
@@ -197,7 +202,12 @@ def download_file(code):
         return redirect(url_for('index'))
     
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], file_record.md5_filename)
-    
+
+    # print(filepath)
+    # 此处的path和上传的时候的path一致
+    # print(os.path.exists(filepath))
+    # 好叭，就不是在这里犯的病
+
     if not os.path.exists(filepath):
         abort(404)
     
@@ -208,17 +218,23 @@ def download_file(code):
         user_agent=request.headers.get('User-Agent')
     )
     db.session.add(download_record)
-    
+     
     # 更新下载计数
     file_record.download_count += 1
     db.session.commit()
-    
+     
+    """
+    send_from_directory 要求 directory 参数是​​相对于应用根目录的路径​​（不是绝对路径）。
+    如果 UPLOAD_FOLDER = 'app/files' 是相对路径，Flask 会尝试从应用根目录（即 app.py 所在目录）
+    下的 app/files 查找文件。
+    """
     response = send_from_directory(
         app.config['UPLOAD_FOLDER'],
         file_record.md5_filename,
         as_attachment=True,
         download_name=file_record.original_filename
     )
+  
     
     return response
 
@@ -261,7 +277,7 @@ def admin_login():
         password = request.form.get('admin_password', '')
         
         # 验证密码前添加延迟
-        time.sleep(app.config['ADMIN_LOGIN_DELAY'])
+        # time.sleep(app.config['ADMIN_LOGIN_DELAY'])
         
         # 验证密码
         if password == app.config['ADMIN_PASSWORD']:
@@ -353,6 +369,7 @@ def add_file():
             
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], md5_filename)
             file.save(filepath)
+
             
             new_record = FileRecord(
                 code=code,
