@@ -154,6 +154,8 @@ tar -czvf my_project.tar.gz my_project/
 scp my_project.tar.gz user@example.com:~/downloads/
 tar -xzvf my_project.tar.gz
 
+
+docker-compose up -d --build --no-cache
 # 构建并启动服务
 docker-compose up -d --build
 
@@ -172,4 +174,15 @@ docker-compose build
 
 # 启动服务
 docker-compose up -d
+```
+
+## 配置其他网关
+
+
+
+常用命令
+```
+docker-compose start [service_name]
+docker-compose stop [service_name]
+docker-compose restart [service_name]
 ```
