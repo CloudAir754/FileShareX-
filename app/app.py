@@ -23,9 +23,6 @@ def get_eastern8_time():
     return datetime.now(EASTERN_8).replace(tzinfo=None)  # 去掉时区信息
 
 
-
-
-
 # 在创建 Flask 应用之前解析命令行参数
 def parse_args():
     parser = argparse.ArgumentParser(description='运行文件分享服务')
@@ -177,10 +174,6 @@ def index():
             return redirect(url_for('index'))
             
         if not file_record.is_valid():
-            # print(file_record.created_at)
-            # print(file_record.expires_at)
-            # print(get_eastern8_time())
-            # print(get_eastern8_time().timestamp())
 
             if file_record.expires_at and get_eastern8_time() > file_record.expires_at:
                 flash('提取码已过期', 'error')
@@ -377,8 +370,6 @@ def add_file():
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], md5_filename)
             file.save(filepath)
 
-            # print(filepath)
-            # print(os.path.exists(filepath))
             
             new_record = FileRecord(
                 code=code,
@@ -593,4 +584,4 @@ if __name__ == '__main__':
             os.makedirs(upload_folder, exist_ok=True)
             print(f"已重新创建上传文件夹: {upload_folder}")
 
-    app.run(host=args.host, port=args.port, debug=True)
+    app.run(host=args.host, port=args.port, debug=False)

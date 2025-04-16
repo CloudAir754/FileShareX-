@@ -1,6 +1,6 @@
 # 文件分享系统
 
-一个基于Flask的轻量级文件分享系统，支持文件上传、提取码分享和下载管理，包含管理员后台功能。
+一个基于Flask的轻量级文件分享系统，支持文件上传、提取码分享和下载管理，包含管理员后台功能。可以直接在Python运行，亦可使用Docker-Compose构建。
 
 ## 功能特性
 
@@ -10,32 +10,25 @@
 - **安全防护**：速率限制、密码爆破防护、下载频率控制
 - **多文件类型支持**：图片、文档、压缩包、音视频等
 
-## 安装与运行
+## 安装与运行-Python直接运行
 
 ### 依赖安装
 
 ```bash
-pip install -r requirements.txt
+pip install -r ./app/requirements.txt
 ```
-
-### 配置说明
-
-编辑 `config.py` 文件修改系统配置，主要配置项包括：
-
-- `SECRET_KEY`: Flask应用密钥
-- `UPLOAD_FOLDER`: 文件上传目录
-- `ALLOWED_EXTENSIONS`: 允许上传的文件类型
-- `ADMIN_PASSWORD`: 管理员密码
-- 各种安全限制参数
 
 ### 运行方式
 
 ```bash
 # 基本运行
-python app.py
+python ./app/app.py
 
-# 自定义参数运行
+# 自定义参数运行（可选）
 python app.py --host 0.0.0.0 --port 5000 --admin-password yourpassword --clear-on-startup
+
+# 后台运行
+nohup python .app/app.py > output.log 2>&1 &
 ```
 
 ### 命令行参数
@@ -46,6 +39,54 @@ python app.py --host 0.0.0.0 --port 5000 --admin-password yourpassword --clear-o
 | `--port` | 绑定端口号 (默认: 5000) |
 | `--admin-password` | 设置管理员密码 |
 | `--clear-on-startup` | 启动时清空数据库和上传文件夹 |
+
+
+## 安装与运行-DockerCompose运行
+在根目录下运行（需要安装好Docker和Docker-compose）
+
+
+```
+# 构建并启动服务
+docker-compose up -d --build
+## 无需缓存的从头构建
+docker-compose up -d --build --no-cache
+```
+
+### 其他运维命令
+```
+# 查看运行状态
+docker-compose ps
+
+# 查看日志
+docker-compose logs -f
+
+# 停止并删除旧容器
+docker-compose down
+
+# 启动服务
+docker-compose up -d
+docker-compose start 
+docker-compose stop 
+docker-compose restart 
+
+# 传给远程主机（自用）
+tar -czvf FileShareX.tar.gz FileShareX/
+scp FileShareX.tar.gz user@Aim_ip:~/downloads/
+tar -xzvf FileShareX.gz
+```
+
+
+## 配置说明
+
+编辑 `config.py` 文件修改系统配置，主要配置项包括：
+
+- `SECRET_KEY`: Flask应用密钥
+- `UPLOAD_FOLDER`: 文件上传目录
+- `ALLOWED_EXTENSIONS`: 允许上传的文件类型
+- `ADMIN_PASSWORD`: 管理员密码
+- 各种安全限制参数
+
+
 
 ## 系统维护
 
@@ -108,25 +149,23 @@ flask cleanup
 - 429 请求过多
 - 500 服务器错误
 
-## 开发测试
-
-启动时添加 `--clear-on-startup` 参数可清空数据库和上传文件夹，方便测试：
-
-```bash
-python app.py --clear-on-startup
-```
 
 ## 项目结构
 
 ```
-.
-├── app.py              # 主应用文件
-├── config.py           # 配置文件
-├── models.py           # 数据库模型
-├── requirements.txt    # 依赖列表
-├── static/             # 静态文件
-├── templates/          # 模板文件
-└── files/              # 文件上传目录
+FileShareX
+    ├── app
+    │   ├── app.py            # 主应用文件
+    │   ├── config.py         # 配置文件
+    │   ├── models.py         # 数据库模型
+    │   ├── requirements.txt  # 依赖列表
+    │   ├── static            # 静态文件
+    │   └── templates         # 模板文件
+    ├── docker-compose.yml    # docker配置
+    ├── Dockerfile            # Flask配置
+    ├── nginx
+    │   └── nginx.conf        # Nginx 配置
+    └── README.md             # 自述文件
 ```
 
 ## 注意事项
@@ -136,53 +175,3 @@ python app.py --clear-on-startup
 3. 文件存储在本地，需要考虑磁盘空间
 4. 默认配置适合小型应用，高并发环境需要调整限制参数
 5. 部分代码由AI开发；平台包括：Deepseek V3（官网）、Deepseek V3（腾讯元宝）
-
-## 后台运行
-```
-nohup python your_script.py > output.log 2>&1 &
-```
-
-
-## Docker 化
-1. 所有原内容移入app
-2. 添加Dockerfile，docker-compose.yml
-3. 
-```
-
-# 压缩和解压缩
-tar -czvf my_project.tar.gz my_project/
-scp my_project.tar.gz user@example.com:~/downloads/
-tar -xzvf my_project.tar.gz
-
-
-docker-compose up -d --build --no-cache
-# 构建并启动服务
-docker-compose up -d --build
-
-# 查看运行状态
-docker-compose ps
-
-# 查看日志
-docker-compose logs -f
-docker-compose logs -f flask
-
-# 停止并删除旧容器
-docker-compose down
-
-# 重新构建
-docker-compose build
-
-# 启动服务
-docker-compose up -d
-```
-
-## 配置其他网关
-
-
-
-常用命令
-```
-docker-compose start [service_name]
-docker-compose stop [service_name]
-docker-compose restart [service_name]
-```
